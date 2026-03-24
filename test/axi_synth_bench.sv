@@ -205,6 +205,329 @@ module axi_synth_bench (
     end
   end
 
+  for (genvar iReadTxns = 1; iReadTxns <= 4; iReadTxns++) begin
+    for (genvar iWriteTxns = 1; iWriteTxns <= 4; iWriteTxns++) begin
+      for (genvar iFullBW = 0; iFullBW <= 1; iFullBW++) begin
+        synth_axi_burst_splitter #(
+          .MaxReadTxns  (iReadTxns),
+          .MaxWriteTxns (iWriteTxns),
+          .FullBW       (iFullBW),
+          .AddrWidth    (64),
+          .DataWidth    (64),
+          .IdWidth      (8),
+          .UserWidth    (8)
+        ) i_splitter (.*);
+      end
+    end
+  end
+
+  // AXI Burst Splitter (granular)
+  for (genvar iReadTxns = 1; iReadTxns <= 4; iReadTxns++) begin : gen_burst_splitter_gran_rd
+    for (genvar iWriteTxns = 1; iWriteTxns <= 4; iWriteTxns++) begin : gen_burst_splitter_gran_wr
+      for (genvar iFullBW = 0; iFullBW <= 1; iFullBW++) begin : gen_burst_splitter_gran_bw
+        synth_axi_burst_splitter_gran #(
+          .MaxReadTxns  ( iReadTxns ),
+          .MaxWriteTxns ( iWriteTxns ),
+          .FullBW       ( iFullBW ),
+          .AddrWidth    ( 64 ),
+          .DataWidth    ( 64 ),
+          .IdWidth      ( 8 ),
+          .UserWidth    ( 8 )
+        ) i_splitter_gran (.*);
+      end
+    end
+  end
+
+  // AXI Bus Compare
+  for (genvar iFifoDepth = 4; iFifoDepth <= 16; iFifoDepth += 12) begin : gen_bus_compare
+    for (genvar iUseSize = 0; iUseSize <= 1; iUseSize++) begin : gen_bus_compare_size
+      synth_axi_bus_compare #(
+        .FifoDepth ( iFifoDepth ),
+        .UseSize   ( iUseSize   )
+      ) i_bus_compare (.*);
+    end
+  end
+
+  // AXI Crossbar
+  for (genvar i = 0; i < 3; i++) begin : gen_axi_xbar
+    localparam int unsigned NoPorts[3] = '{1, 2, 4};
+    synth_axi_xbar #(
+      .NoSlvPorts ( NoPorts[i] ),
+      .NoMstPorts ( NoPorts[i] )
+    ) i_axi_xbar (.*);
+  end
+
+  // AXI Register Slice
+  for (genvar i = 0; i < 2; i++) begin : gen_axi_cut
+    synth_axi_cut #(
+      .Bypass ( i[0] )
+    ) i_axi_cut (.*);
+  end
+
+  // AXI Multi-cut
+  for (genvar i = 0; i < 3; i++) begin : gen_axi_multicut
+    localparam int unsigned NoCuts[3] = '{1, 2, 4};
+    synth_axi_multicut #(
+      .NoCuts ( NoCuts[i] )
+    ) i_axi_multicut (.*);
+  end
+
+  // AXI FIFO
+  for (genvar i = 0; i < 3; i++) begin : gen_axi_fifo
+    localparam int unsigned Depth[3] = '{1, 4, 16};
+    synth_axi_fifo #(
+      .Depth ( Depth[i] )
+    ) i_axi_fifo (.*);
+  end
+
+  // AXI Demux
+  for (genvar i = 0; i < 3; i++) begin : gen_axi_demux
+    localparam int unsigned NoPorts[3] = '{1, 2, 4};
+    synth_axi_demux #(
+      .NoMstPorts ( NoPorts[i] )
+    ) i_axi_demux (.*);
+  end
+
+  // AXI Demux (simple)
+  for (genvar i = 0; i < 3; i++) begin : gen_axi_demux_simple
+    localparam int unsigned NoPorts[3] = '{1, 2, 4};
+    synth_axi_demux_simple #(
+      .NoMstPorts ( NoPorts[i] )
+    ) i_axi_demux_simple (.*);
+  end
+
+  // AXI Mux
+  for (genvar i = 0; i < 3; i++) begin : gen_axi_mux
+    localparam int unsigned NoPorts[3] = '{1, 2, 4};
+    synth_axi_mux #(
+      .NoSlvPorts ( NoPorts[i] )
+    ) i_axi_mux (.*);
+  end
+
+  // AXI Data Width Converter
+  for (genvar i = 0; i < 3; i++) begin : gen_axi_dw_converter
+    localparam int unsigned SlvDW[3] = '{32, 64, 128};
+    localparam int unsigned MstDW[3] = '{64, 32,  64};
+    synth_axi_dw_converter #(
+      .AxiSlvPortDataWidth ( SlvDW[i] ),
+      .AxiMstPortDataWidth ( MstDW[i] )
+    ) i_axi_dw_converter (.*);
+  end
+
+  // AXI Throttle
+  for (genvar i = 0; i < 3; i++) begin : gen_axi_throttle
+    localparam int unsigned MaxPending[3] = '{1, 4, 16};
+    synth_axi_throttle #(
+      .MaxNumAwPending ( MaxPending[i] ),
+      .MaxNumArPending ( MaxPending[i] )
+    ) i_axi_throttle (.*);
+  end
+
+  // AXI Invalidation Filter
+  for (genvar i = 0; i < 3; i++) begin : gen_axi_inval_filter
+    localparam int unsigned MaxTxns[3] = '{1, 4, 16};
+    synth_axi_inval_filter #(
+      .MaxTxns ( MaxTxns[i] )
+    ) i_axi_inval_filter (.*);
+  end
+
+  // AXI ID Serializer
+  for (genvar i_slv = 0; i_slv < 3; i_slv++) begin : gen_axi_id_serialize_slv
+    for (genvar i_mst = 0; i_mst < 2; i_mst++) begin : gen_axi_id_serialize_mst
+      localparam int unsigned SlvIW[3] = '{4, 6, 8};
+      localparam int unsigned MstIW[2] = '{2, 3};
+      synth_axi_id_serialize #(
+        .AxiSlvPortIdWidth    ( SlvIW[i_slv]    ),
+        .AxiMstPortIdWidth    ( MstIW[i_mst]    ),
+        .AxiMstPortMaxUniqIds ( 2**MstIW[i_mst] )
+      ) i_axi_id_serialize (.*);
+    end
+  end
+
+  // AXI ID Remap
+  for (genvar i_slv = 0; i_slv < 2; i_slv++) begin : gen_axi_id_remap_slv
+    for (genvar i_mst = 0; i_mst < 2; i_mst++) begin : gen_axi_id_remap_mst
+      localparam int unsigned SlvIW[2] = '{6, 8};
+      localparam int unsigned MstIW[2] = '{3, 4};
+      synth_axi_id_remap #(
+        .AxiSlvPortIdWidth   ( SlvIW[i_slv] ),
+        .AxiMstPortIdWidth   ( MstIW[i_mst] )
+      ) i_axi_id_remap (.*);
+    end
+  end
+
+  // AXI ID Prepend
+  for (genvar i = 0; i < 3; i++) begin : gen_axi_id_prepend
+    localparam int unsigned NoBus[3] = '{1, 2, 4};
+    synth_axi_id_prepend #(
+      .NoBus ( NoBus[i] )
+    ) i_axi_id_prepend (.*);
+  end
+
+  // AXI Demux ID Counters
+  for (genvar i = 0; i < 3; i++) begin : gen_axi_demux_id_counters
+    localparam int unsigned AxiIdBits[3] = '{1, 3, 4};
+    synth_axi_demux_id_counters #(
+      .AxiIdBits ( AxiIdBits[i] )
+    ) i_axi_demux_id_counters (.*);
+  end
+
+  // AXI to Memory
+  for (genvar i = 0; i < 3; i++) begin : gen_axi_to_mem
+    localparam int unsigned NumBanks[3] = '{1, 2, 4};
+    synth_axi_to_mem #(
+      .NumBanks ( NumBanks[i] )
+    ) i_axi_to_mem (.*);
+  end
+
+  // AXI to Memory (interleaved)
+  for (genvar i = 0; i < 3; i++) begin : gen_axi_to_mem_interleaved
+    localparam int unsigned NumBanks[3] = '{1, 2, 4};
+    synth_axi_to_mem_interleaved #(
+      .NumBanks ( NumBanks[i] )
+    ) i_axi_to_mem_interleaved (.*);
+  end
+
+  // AXI to Memory (split)
+  for (genvar i = 0; i < 3; i++) begin : gen_axi_to_mem_split
+    localparam int unsigned MemDW[3] = '{32, 64, 128};
+    synth_axi_to_mem_split #(
+      .MemDataWidth ( MemDW[i] )
+    ) i_axi_to_mem_split (.*);
+  end
+
+  // AXI to Memory (detailed)
+  for (genvar i = 0; i < 3; i++) begin : gen_axi_to_detailed_mem
+    localparam int unsigned NumBanks[3] = '{1, 2, 4};
+    synth_axi_to_detailed_mem #(
+      .NumBanks ( NumBanks[i] )
+    ) i_axi_to_detailed_mem (.*);
+  end
+
+  // AXI from Memory
+  for (genvar i = 0; i < 3; i++) begin : gen_axi_from_mem
+    localparam int unsigned MaxReqs[3] = '{1, 4, 16};
+    synth_axi_from_mem #(
+      .MaxRequests ( MaxReqs[i] )
+    ) i_axi_from_mem (.*);
+  end
+
+  // AXI-Lite from Memory
+  for (genvar i = 0; i < 3; i++) begin : gen_axi_lite_from_mem
+    localparam int unsigned MaxReqs[3] = '{1, 4, 16};
+    synth_axi_lite_from_mem #(
+      .MaxRequests ( MaxReqs[i] )
+    ) i_axi_lite_from_mem (.*);
+  end
+
+  // AXI Interleaved Crossbar
+  for (genvar i = 0; i < 3; i++) begin : gen_axi_interleaved_xbar
+    localparam int unsigned NoPorts[3] = '{1, 2, 4};
+    synth_axi_interleaved_xbar #(
+      .NoSlvPorts ( NoPorts[i] ),
+      .NoMstPorts ( NoPorts[i] )
+    ) i_axi_interleaved_xbar (.*);
+  end
+
+  // AXI Crosspoint
+  for (genvar i = 0; i < 3; i++) begin : gen_axi_xp
+    localparam int unsigned NoPorts[3] = '{1, 2, 4};
+    synth_axi_xp #(
+      .NumSlvPorts ( NoPorts[i] ),
+      .NumMstPorts ( NoPorts[i] )
+    ) i_axi_xp (.*);
+  end
+
+  // AXI Burst Unwrap
+  for (genvar i = 0; i < 3; i++) begin : gen_axi_burst_unwrap
+    localparam int unsigned MaxTxns[3] = '{1, 4, 16};
+    synth_axi_burst_unwrap #(
+      .MaxReadTxns  ( MaxTxns[i] ),
+      .MaxWriteTxns ( MaxTxns[i] )
+    ) i_axi_burst_unwrap (.*);
+  end
+
+  // AXI Delayer
+  synth_axi_delayer i_axi_delayer (.*);
+
+  // AXI Read/Write Join
+  synth_axi_rw_join i_axi_rw_join (.*);
+
+  // AXI Read/Write Split
+  synth_axi_rw_split i_axi_rw_split (.*);
+
+  // AXI Zero Memory
+  synth_axi_zero_mem i_axi_zero_mem (.*);
+
+  // AXI LFSR
+  for (genvar i = 0; i < 2; i++) begin : gen_axi_lfsr
+    localparam int unsigned DW[2] = '{32, 64};
+    synth_axi_lfsr #(
+      .DataWidth ( DW[i] )
+    ) i_axi_lfsr (.*);
+  end
+
+  // AXI-Lite LFSR
+  for (genvar i = 0; i < 2; i++) begin : gen_axi_lite_lfsr
+    localparam int unsigned DW[2] = '{32, 64};
+    synth_axi_lite_lfsr #(
+      .DataWidth ( DW[i] )
+    ) i_axi_lite_lfsr (.*);
+  end
+
+  // AXI Slave Compare
+  for (genvar iFifoDepth = 4; iFifoDepth <= 16; iFifoDepth += 12) begin : gen_slave_compare
+    for (genvar iUseSize = 0; iUseSize <= 1; iUseSize++) begin : gen_slave_compare_size
+      synth_axi_slave_compare #(
+        .FifoDepth ( iFifoDepth ),
+        .UseSize   ( iUseSize   )
+      ) i_slave_compare (.*);
+    end
+  end
+
+  // AXI FIFO Delay Dyn
+  for (genvar i = 0; i < 3; i++) begin : gen_axi_fifo_delay_dyn
+    localparam int unsigned MaxDelay[3] = '{16, 64, 256};
+    synth_axi_fifo_delay_dyn #(
+      .MaxDelay ( MaxDelay[i] )
+    ) i_axi_fifo_delay_dyn (.*);
+  end
+
+  // AXI Error Slave
+  synth_axi_err_slv i_axi_err_slv (.*);
+
+  // AXI CDC Source
+  for (genvar i = 0; i < 3; i++) begin : gen_axi_cdc_src
+    localparam int unsigned LogDepth[3] = '{1, 2, 3};
+    synth_axi_cdc_src #(
+      .LogDepth ( LogDepth[i] )
+    ) i_axi_cdc_src (.*);
+  end
+
+  // AXI CDC Destination
+  for (genvar i = 0; i < 3; i++) begin : gen_axi_cdc_dst
+    localparam int unsigned LogDepth[3] = '{1, 2, 3};
+    synth_axi_cdc_dst #(
+      .LogDepth ( LogDepth[i] )
+    ) i_axi_cdc_dst (.*);
+  end
+
+  // AXI-Lite Demux
+  for (genvar i = 0; i < 3; i++) begin : gen_axi_lite_demux
+    localparam int unsigned NoPorts[3] = '{1, 2, 4};
+    synth_axi_lite_demux #(
+      .NoMstPorts ( NoPorts[i] )
+    ) i_axi_lite_demux (.*);
+  end
+
+  // AXI-Lite Mux
+  for (genvar i = 0; i < 3; i++) begin : gen_axi_lite_mux
+    localparam int unsigned NoPorts[3] = '{1, 2, 4};
+    synth_axi_lite_mux #(
+      .NoSlvPorts ( NoPorts[i] )
+    ) i_axi_lite_mux (.*);
+  end
+
 endmodule
 
 
@@ -792,4 +1115,2051 @@ module synth_axi_lite_dw_converter #(
     .mst    ( mst_intf )
   );
 
+endmodule
+
+module synth_axi_burst_splitter #(
+  parameter int unsigned MaxReadTxns  = 32'd1,
+  parameter int unsigned MaxWriteTxns = 32'd1,
+  parameter bit unsigned FullBW       = 0,
+  parameter int unsigned AddrWidth    = 32'd64,
+  parameter int unsigned DataWidth    = 32'd64,
+  parameter int unsigned IdWidth      = 32'd8,
+  parameter int unsigned UserWidth    = 32'd8
+) (
+  input logic clk_i,
+  input logic rst_ni
+);
+
+  `AXI_TYPEDEF_ALL(axi,
+      logic [AddrWidth-1:0],
+      logic [IdWidth-1:0],
+      logic [DataWidth-1:0],
+      logic [DataWidth/8-1:0],
+      logic [UserWidth-1:0])
+
+  axi_req_t  slv_req;
+  axi_resp_t slv_resp;
+  axi_req_t  mst_req;
+  axi_resp_t mst_resp;
+
+  axi_burst_splitter #(
+    .MaxReadTxns  ( MaxReadTxns  ),
+    .MaxWriteTxns ( MaxWriteTxns ),
+    .FullBW       ( FullBW       ),
+    .AddrWidth    ( AddrWidth    ),
+    .DataWidth    ( DataWidth    ),
+    .IdWidth      ( IdWidth      ),
+    .UserWidth    ( UserWidth    ),
+    .axi_req_t    ( axi_req_t    ),
+    .axi_resp_t   ( axi_resp_t   )
+  ) i_axi_burst_splitter (
+    .clk_i,
+    .rst_ni,
+    .slv_req_i  ( slv_req  ),
+    .slv_resp_o ( slv_resp ),
+    .mst_req_o  ( mst_req  ),
+    .mst_resp_i ( mst_resp )
+  );
+
+endmodule
+
+
+module synth_axi_burst_splitter_gran #(
+  parameter int unsigned MaxReadTxns  = 32'd1,
+  parameter int unsigned MaxWriteTxns = 32'd1,
+  parameter bit unsigned FullBW       = 0,
+  parameter int unsigned AddrWidth    = 32'd64,
+  parameter int unsigned DataWidth    = 32'd64,
+  parameter int unsigned IdWidth      = 32'd8,
+  parameter int unsigned UserWidth    = 32'd8
+) (
+  input logic clk_i,
+  input logic rst_ni
+);
+
+  `AXI_TYPEDEF_ALL(axi,
+    logic [AddrWidth-1:0],
+    logic [IdWidth-1:0],
+    logic [DataWidth-1:0],
+    logic [DataWidth/8-1:0],
+    logic [UserWidth-1:0])
+
+  axi_req_t  slv_req;
+  axi_resp_t slv_resp;
+  axi_req_t  mst_req;
+  axi_resp_t mst_resp;
+  axi_pkg::len_t len_limit;
+
+  axi_burst_splitter_gran #(
+    .MaxReadTxns   ( MaxReadTxns   ),
+    .MaxWriteTxns  ( MaxWriteTxns  ),
+    .FullBW        ( FullBW        ),
+    .CutPath       ( 1'b1          ), // differentiate from axi_burst_splitter
+    .DisableChecks ( 1'b0          ),
+    .AddrWidth     ( AddrWidth     ),
+    .DataWidth     ( DataWidth     ),
+    .IdWidth       ( IdWidth       ),
+    .UserWidth     ( UserWidth     ),
+    .axi_req_t     ( axi_req_t     ),
+    .axi_resp_t    ( axi_resp_t    ),
+    .axi_aw_chan_t ( axi_aw_chan_t ),
+    .axi_w_chan_t  ( axi_w_chan_t  ),
+    .axi_b_chan_t  ( axi_b_chan_t  ),
+    .axi_ar_chan_t ( axi_ar_chan_t ),
+    .axi_r_chan_t  ( axi_r_chan_t  )
+  ) i_axi_burst_splitter_gran (
+    .clk_i,
+    .rst_ni,
+    .len_limit_i ( len_limit ),
+    .slv_req_i   ( slv_req   ),
+    .slv_resp_o  ( slv_resp  ),
+    .mst_req_o   ( mst_req   ),
+    .mst_resp_i  ( mst_resp  )
+  );
+
+endmodule
+
+module synth_axi_bus_compare #(
+  parameter int unsigned FifoDepth = 32'd0,
+  parameter bit          UseSize   = 1'b0,
+  parameter int unsigned DataWidth = 32'd64,
+  parameter int unsigned AddrWidth = 32'd64,
+  parameter int unsigned IdWidth   = 32'd8,
+  parameter int unsigned UserWidth = 32'd8
+) (
+  input logic clk_i,
+  input logic rst_ni
+);
+
+  `AXI_TYPEDEF_ALL(axi,
+    logic [AddrWidth-1:0],
+    logic [IdWidth-1:0],
+    logic [DataWidth-1:0],
+    logic [DataWidth/8-1:0],
+    logic [UserWidth-1:0])
+  typedef logic [2**IdWidth-1:0] id_t;
+
+  axi_req_t  axi_a_req_i,
+             axi_a_req_o,
+             axi_b_req_i,
+             axi_b_req_o;
+  axi_resp_t axi_a_rsp_o,
+             axi_a_rsp_i,
+             axi_b_rsp_o,
+             axi_b_rsp_i;
+  id_t       aw_mismatch_o,
+             b_mismatch_o,
+             ar_mismatch_o,
+             r_mismatch_o;
+  logic      testmode_i,
+             w_mismatch_o,
+             mismatch_o,
+             busy_o;
+
+  axi_bus_compare #(
+    .AxiIdWidth    ( IdWidth       ),
+    .FifoDepth     ( FifoDepth     ),
+    .UseSize       ( UseSize       ), // differentiate from axi_burst_splitter
+    .DataWidth     ( DataWidth     ),
+    .axi_aw_chan_t ( axi_aw_chan_t ),
+    .axi_w_chan_t  ( axi_w_chan_t  ),
+    .axi_b_chan_t  ( axi_b_chan_t  ),
+    .axi_ar_chan_t ( axi_ar_chan_t ),
+    .axi_r_chan_t  ( axi_r_chan_t  ),
+    .axi_req_t     ( axi_req_t     ),
+    .axi_rsp_t     ( axi_resp_t    )
+  ) i_axi_burst_splitter_gran (
+    .*
+  );
+
+endmodule
+
+
+module synth_axi_xbar #(
+  parameter int unsigned NoSlvPorts = 32'd1,
+  parameter int unsigned NoMstPorts = 32'd1,
+  parameter int unsigned AddrWidth  = 32'd64,
+  parameter int unsigned DataWidth  = 32'd64,
+  parameter int unsigned SlvIdWidth = 32'd4,
+  parameter int unsigned UserWidth  = 32'd4
+) (
+  input logic clk_i,
+  input logic rst_ni
+);
+  localparam int unsigned MstIdWidth       = SlvIdWidth + (NoSlvPorts > 1 ? $clog2(NoSlvPorts) : 0);
+  localparam int unsigned MstPortsIdxWidth = (NoMstPorts > 1) ? $clog2(NoMstPorts) : 1;
+  localparam axi_pkg::xbar_cfg_t XbarCfg = '{
+    NoSlvPorts:         NoSlvPorts,
+    NoMstPorts:         NoMstPorts,
+    MaxMstTrans:        32'd4,
+    MaxSlvTrans:        32'd4,
+    FallThrough:        1'b0,
+    LatencyMode:        axi_pkg::CUT_ALL_PORTS,
+    PipelineStages:     32'd0,
+    AxiIdWidthSlvPorts: SlvIdWidth,
+    AxiIdUsedSlvPorts:  SlvIdWidth,
+    UniqueIds:          1'b0,
+    AxiAddrWidth:       AddrWidth,
+    AxiDataWidth:       DataWidth,
+    NoAddrRules:        NoMstPorts
+  };
+
+  `AXI_TYPEDEF_ALL(slv_axi,
+    logic [AddrWidth-1:0],
+    logic [SlvIdWidth-1:0],
+    logic [DataWidth-1:0],
+    logic [DataWidth/8-1:0],
+    logic [UserWidth-1:0])
+  `AXI_TYPEDEF_ALL(mst_axi,
+    logic [AddrWidth-1:0],
+    logic [MstIdWidth-1:0],
+    logic [DataWidth-1:0],
+    logic [DataWidth/8-1:0],
+    logic [UserWidth-1:0])
+
+  logic                                         test_i;
+  slv_axi_req_t  [NoSlvPorts-1:0]              slv_ports_req_i;
+  slv_axi_resp_t [NoSlvPorts-1:0]              slv_ports_resp_o;
+  mst_axi_req_t  [NoMstPorts-1:0]              mst_ports_req_o;
+  mst_axi_resp_t [NoMstPorts-1:0]              mst_ports_resp_i;
+  axi_pkg::xbar_rule_64_t [NoMstPorts-1:0]    addr_map_i;
+  logic           [NoSlvPorts-1:0]             en_default_mst_port_i;
+  logic [NoSlvPorts-1:0][MstPortsIdxWidth-1:0] default_mst_port_i;
+
+  axi_xbar #(
+    .Cfg           ( XbarCfg                  ),
+    .slv_aw_chan_t ( slv_axi_aw_chan_t        ),
+    .mst_aw_chan_t ( mst_axi_aw_chan_t        ),
+    .w_chan_t      ( slv_axi_w_chan_t         ),
+    .slv_b_chan_t  ( slv_axi_b_chan_t         ),
+    .mst_b_chan_t  ( mst_axi_b_chan_t         ),
+    .slv_ar_chan_t ( slv_axi_ar_chan_t        ),
+    .mst_ar_chan_t ( mst_axi_ar_chan_t        ),
+    .slv_r_chan_t  ( slv_axi_r_chan_t         ),
+    .mst_r_chan_t  ( mst_axi_r_chan_t         ),
+    .slv_req_t     ( slv_axi_req_t           ),
+    .slv_resp_t    ( slv_axi_resp_t          ),
+    .mst_req_t     ( mst_axi_req_t           ),
+    .mst_resp_t    ( mst_axi_resp_t          ),
+    .rule_t        ( axi_pkg::xbar_rule_64_t )
+  ) i_axi_xbar (
+    .clk_i,
+    .rst_ni,
+    .test_i                ( test_i                ),
+    .slv_ports_req_i       ( slv_ports_req_i       ),
+    .slv_ports_resp_o      ( slv_ports_resp_o      ),
+    .mst_ports_req_o       ( mst_ports_req_o       ),
+    .mst_ports_resp_i      ( mst_ports_resp_i      ),
+    .addr_map_i            ( addr_map_i            ),
+    .en_default_mst_port_i ( en_default_mst_port_i ),
+    .default_mst_port_i    ( default_mst_port_i    )
+  );
+endmodule
+
+
+module synth_axi_cut #(
+  parameter bit          Bypass    = 1'b0,
+  parameter int unsigned AddrWidth = 32'd64,
+  parameter int unsigned DataWidth = 32'd64,
+  parameter int unsigned IdWidth   = 32'd8,
+  parameter int unsigned UserWidth = 32'd8
+) (
+  input logic clk_i,
+  input logic rst_ni
+);
+  `AXI_TYPEDEF_ALL(axi,
+    logic [AddrWidth-1:0],
+    logic [IdWidth-1:0],
+    logic [DataWidth-1:0],
+    logic [DataWidth/8-1:0],
+    logic [UserWidth-1:0])
+
+  axi_req_t  slv_req_i, mst_req_o;
+  axi_resp_t slv_resp_o, mst_resp_i;
+
+  axi_cut #(
+    .Bypass     ( Bypass        ),
+    .aw_chan_t  ( axi_aw_chan_t ),
+    .w_chan_t   ( axi_w_chan_t  ),
+    .b_chan_t   ( axi_b_chan_t  ),
+    .ar_chan_t  ( axi_ar_chan_t ),
+    .r_chan_t   ( axi_r_chan_t  ),
+    .axi_req_t  ( axi_req_t    ),
+    .axi_resp_t ( axi_resp_t   )
+  ) i_axi_cut (
+    .clk_i,
+    .rst_ni,
+    .slv_req_i  ( slv_req_i  ),
+    .slv_resp_o ( slv_resp_o ),
+    .mst_req_o  ( mst_req_o  ),
+    .mst_resp_i ( mst_resp_i )
+  );
+endmodule
+
+
+module synth_axi_multicut #(
+  parameter int unsigned NoCuts    = 32'd1,
+  parameter int unsigned AddrWidth = 32'd64,
+  parameter int unsigned DataWidth = 32'd64,
+  parameter int unsigned IdWidth   = 32'd8,
+  parameter int unsigned UserWidth = 32'd8
+) (
+  input logic clk_i,
+  input logic rst_ni
+);
+  `AXI_TYPEDEF_ALL(axi,
+    logic [AddrWidth-1:0],
+    logic [IdWidth-1:0],
+    logic [DataWidth-1:0],
+    logic [DataWidth/8-1:0],
+    logic [UserWidth-1:0])
+
+  axi_req_t  slv_req_i, mst_req_o;
+  axi_resp_t slv_resp_o, mst_resp_i;
+
+  axi_multicut #(
+    .NoCuts     ( NoCuts        ),
+    .aw_chan_t  ( axi_aw_chan_t ),
+    .w_chan_t   ( axi_w_chan_t  ),
+    .b_chan_t   ( axi_b_chan_t  ),
+    .ar_chan_t  ( axi_ar_chan_t ),
+    .r_chan_t   ( axi_r_chan_t  ),
+    .axi_req_t  ( axi_req_t    ),
+    .axi_resp_t ( axi_resp_t   )
+  ) i_axi_multicut (
+    .clk_i,
+    .rst_ni,
+    .slv_req_i  ( slv_req_i  ),
+    .slv_resp_o ( slv_resp_o ),
+    .mst_req_o  ( mst_req_o  ),
+    .mst_resp_i ( mst_resp_i )
+  );
+endmodule
+
+
+module synth_axi_fifo #(
+  parameter int unsigned Depth     = 32'd1,
+  parameter int unsigned AddrWidth = 32'd64,
+  parameter int unsigned DataWidth = 32'd64,
+  parameter int unsigned IdWidth   = 32'd8,
+  parameter int unsigned UserWidth = 32'd8
+) (
+  input logic clk_i,
+  input logic rst_ni
+);
+  `AXI_TYPEDEF_ALL(axi,
+    logic [AddrWidth-1:0],
+    logic [IdWidth-1:0],
+    logic [DataWidth-1:0],
+    logic [DataWidth/8-1:0],
+    logic [UserWidth-1:0])
+
+  axi_req_t  slv_req_i, mst_req_o;
+  axi_resp_t slv_resp_o, mst_resp_i;
+  logic      test_i;
+
+  axi_fifo #(
+    .Depth      ( Depth         ),
+    .aw_chan_t  ( axi_aw_chan_t ),
+    .w_chan_t   ( axi_w_chan_t  ),
+    .b_chan_t   ( axi_b_chan_t  ),
+    .ar_chan_t  ( axi_ar_chan_t ),
+    .r_chan_t   ( axi_r_chan_t  ),
+    .axi_req_t  ( axi_req_t    ),
+    .axi_resp_t ( axi_resp_t   )
+  ) i_axi_fifo (
+    .clk_i,
+    .rst_ni,
+    .test_i     ( test_i    ),
+    .slv_req_i  ( slv_req_i  ),
+    .slv_resp_o ( slv_resp_o ),
+    .mst_req_o  ( mst_req_o  ),
+    .mst_resp_i ( mst_resp_i )
+  );
+endmodule
+
+
+module synth_axi_demux #(
+  parameter int unsigned NoMstPorts = 32'd2,
+  parameter int unsigned AxiIdWidth = 32'd8,
+  parameter int unsigned MaxTrans   = 32'd8,
+  parameter int unsigned AddrWidth  = 32'd64,
+  parameter int unsigned DataWidth  = 32'd64,
+  parameter int unsigned UserWidth  = 32'd8
+) (
+  input logic clk_i,
+  input logic rst_ni
+);
+  localparam int unsigned SelectWidth = (NoMstPorts > 1) ? $clog2(NoMstPorts) : 1;
+  typedef logic [SelectWidth-1:0] select_t;
+
+  `AXI_TYPEDEF_ALL(axi,
+    logic [AddrWidth-1:0],
+    logic [AxiIdWidth-1:0],
+    logic [DataWidth-1:0],
+    logic [DataWidth/8-1:0],
+    logic [UserWidth-1:0])
+
+  axi_req_t               slv_req_i;
+  axi_resp_t              slv_resp_o;
+  select_t                slv_aw_select_i, slv_ar_select_i;
+  axi_req_t  [NoMstPorts-1:0] mst_reqs_o;
+  axi_resp_t [NoMstPorts-1:0] mst_resps_i;
+  logic                   test_i;
+
+  axi_demux #(
+    .AxiIdWidth  ( AxiIdWidth   ),
+    .aw_chan_t   ( axi_aw_chan_t ),
+    .w_chan_t    ( axi_w_chan_t  ),
+    .b_chan_t    ( axi_b_chan_t  ),
+    .ar_chan_t   ( axi_ar_chan_t ),
+    .r_chan_t    ( axi_r_chan_t  ),
+    .axi_req_t   ( axi_req_t    ),
+    .axi_resp_t  ( axi_resp_t   ),
+    .NoMstPorts  ( NoMstPorts   ),
+    .MaxTrans    ( MaxTrans      )
+  ) i_axi_demux (
+    .clk_i,
+    .rst_ni,
+    .test_i           ( test_i           ),
+    .slv_req_i        ( slv_req_i        ),
+    .slv_aw_select_i  ( slv_aw_select_i  ),
+    .slv_ar_select_i  ( slv_ar_select_i  ),
+    .slv_resp_o       ( slv_resp_o       ),
+    .mst_reqs_o       ( mst_reqs_o       ),
+    .mst_resps_i      ( mst_resps_i      )
+  );
+endmodule
+
+
+module synth_axi_demux_simple #(
+  parameter int unsigned NoMstPorts = 32'd2,
+  parameter int unsigned AxiIdWidth = 32'd8,
+  parameter int unsigned MaxTrans   = 32'd8,
+  parameter int unsigned AddrWidth  = 32'd64,
+  parameter int unsigned DataWidth  = 32'd64,
+  parameter int unsigned UserWidth  = 32'd8
+) (
+  input logic clk_i,
+  input logic rst_ni
+);
+  localparam int unsigned SelectWidth = (NoMstPorts > 1) ? $clog2(NoMstPorts) : 1;
+  typedef logic [SelectWidth-1:0] select_t;
+
+  `AXI_TYPEDEF_ALL(axi,
+    logic [AddrWidth-1:0],
+    logic [AxiIdWidth-1:0],
+    logic [DataWidth-1:0],
+    logic [DataWidth/8-1:0],
+    logic [UserWidth-1:0])
+
+  axi_req_t               slv_req_i;
+  axi_resp_t              slv_resp_o;
+  select_t                slv_aw_select_i, slv_ar_select_i;
+  axi_req_t  [NoMstPorts-1:0] mst_reqs_o;
+  axi_resp_t [NoMstPorts-1:0] mst_resps_i;
+  logic                   test_i;
+
+  axi_demux_simple #(
+    .AxiIdWidth  ( AxiIdWidth  ),
+    .axi_req_t   ( axi_req_t   ),
+    .axi_resp_t  ( axi_resp_t  ),
+    .NoMstPorts  ( NoMstPorts  ),
+    .MaxTrans    ( MaxTrans     )
+  ) i_axi_demux_simple (
+    .clk_i,
+    .rst_ni,
+    .test_i           ( test_i           ),
+    .slv_req_i        ( slv_req_i        ),
+    .slv_aw_select_i  ( slv_aw_select_i  ),
+    .slv_ar_select_i  ( slv_ar_select_i  ),
+    .slv_resp_o       ( slv_resp_o       ),
+    .mst_reqs_o       ( mst_reqs_o       ),
+    .mst_resps_i      ( mst_resps_i      )
+  );
+endmodule
+
+
+module synth_axi_mux #(
+  parameter int unsigned NoSlvPorts = 32'd2,
+  parameter int unsigned SlvIdWidth = 32'd4,
+  parameter int unsigned AddrWidth  = 32'd64,
+  parameter int unsigned DataWidth  = 32'd64,
+  parameter int unsigned UserWidth  = 32'd8
+) (
+  input logic clk_i,
+  input logic rst_ni
+);
+  localparam int unsigned MstIdWidth = SlvIdWidth + (NoSlvPorts > 1 ? $clog2(NoSlvPorts) : 0);
+
+  `AXI_TYPEDEF_ALL(slv_axi,
+    logic [AddrWidth-1:0],
+    logic [SlvIdWidth-1:0],
+    logic [DataWidth-1:0],
+    logic [DataWidth/8-1:0],
+    logic [UserWidth-1:0])
+  `AXI_TYPEDEF_ALL(mst_axi,
+    logic [AddrWidth-1:0],
+    logic [MstIdWidth-1:0],
+    logic [DataWidth-1:0],
+    logic [DataWidth/8-1:0],
+    logic [UserWidth-1:0])
+
+  slv_axi_req_t  [NoSlvPorts-1:0] slv_reqs_i;
+  slv_axi_resp_t [NoSlvPorts-1:0] slv_resps_o;
+  mst_axi_req_t                   mst_req_o;
+  mst_axi_resp_t                  mst_resp_i;
+  logic                           test_i;
+
+  axi_mux #(
+    .SlvAxiIDWidth ( SlvIdWidth          ),
+    .slv_aw_chan_t ( slv_axi_aw_chan_t   ),
+    .mst_aw_chan_t ( mst_axi_aw_chan_t   ),
+    .w_chan_t      ( slv_axi_w_chan_t    ),
+    .slv_b_chan_t  ( slv_axi_b_chan_t    ),
+    .mst_b_chan_t  ( mst_axi_b_chan_t    ),
+    .slv_ar_chan_t ( slv_axi_ar_chan_t   ),
+    .mst_ar_chan_t ( mst_axi_ar_chan_t   ),
+    .slv_r_chan_t  ( slv_axi_r_chan_t    ),
+    .mst_r_chan_t  ( mst_axi_r_chan_t    ),
+    .slv_req_t     ( slv_axi_req_t      ),
+    .slv_resp_t    ( slv_axi_resp_t     ),
+    .mst_req_t     ( mst_axi_req_t      ),
+    .mst_resp_t    ( mst_axi_resp_t     ),
+    .NoSlvPorts    ( NoSlvPorts         )
+  ) i_axi_mux (
+    .clk_i,
+    .rst_ni,
+    .test_i      ( test_i     ),
+    .slv_reqs_i  ( slv_reqs_i ),
+    .slv_resps_o ( slv_resps_o),
+    .mst_req_o   ( mst_req_o  ),
+    .mst_resp_i  ( mst_resp_i )
+  );
+endmodule
+
+
+module synth_axi_dw_converter #(
+  parameter int unsigned AxiSlvPortDataWidth = 32'd64,
+  parameter int unsigned AxiMstPortDataWidth = 32'd32,
+  parameter int unsigned AxiAddrWidth        = 32'd64,
+  parameter int unsigned AxiIdWidth          = 32'd8,
+  parameter int unsigned AxiUserWidth        = 32'd8,
+  parameter int unsigned AxiMaxReads         = 32'd4
+) (
+  input logic clk_i,
+  input logic rst_ni
+);
+  `AXI_TYPEDEF_ALL(slv_axi,
+    logic [AxiAddrWidth-1:0],
+    logic [AxiIdWidth-1:0],
+    logic [AxiSlvPortDataWidth-1:0],
+    logic [AxiSlvPortDataWidth/8-1:0],
+    logic [AxiUserWidth-1:0])
+  `AXI_TYPEDEF_ALL(mst_axi,
+    logic [AxiAddrWidth-1:0],
+    logic [AxiIdWidth-1:0],
+    logic [AxiMstPortDataWidth-1:0],
+    logic [AxiMstPortDataWidth/8-1:0],
+    logic [AxiUserWidth-1:0])
+
+  slv_axi_req_t  slv_req_i;
+  slv_axi_resp_t slv_resp_o;
+  mst_axi_req_t  mst_req_o;
+  mst_axi_resp_t mst_resp_i;
+
+  axi_dw_converter #(
+    .AxiMaxReads         ( AxiMaxReads              ),
+    .AxiSlvPortDataWidth ( AxiSlvPortDataWidth       ),
+    .AxiMstPortDataWidth ( AxiMstPortDataWidth       ),
+    .AxiAddrWidth        ( AxiAddrWidth              ),
+    .AxiIdWidth          ( AxiIdWidth                ),
+    .aw_chan_t           ( slv_axi_aw_chan_t         ),
+    .mst_w_chan_t        ( mst_axi_w_chan_t          ),
+    .slv_w_chan_t        ( slv_axi_w_chan_t          ),
+    .b_chan_t            ( slv_axi_b_chan_t          ),
+    .ar_chan_t           ( slv_axi_ar_chan_t         ),
+    .mst_r_chan_t        ( mst_axi_r_chan_t          ),
+    .slv_r_chan_t        ( slv_axi_r_chan_t          ),
+    .axi_mst_req_t       ( mst_axi_req_t            ),
+    .axi_mst_resp_t      ( mst_axi_resp_t           ),
+    .axi_slv_req_t       ( slv_axi_req_t            ),
+    .axi_slv_resp_t      ( slv_axi_resp_t           )
+  ) i_axi_dw_converter (
+    .clk_i,
+    .rst_ni,
+    .slv_req_i  ( slv_req_i  ),
+    .slv_resp_o ( slv_resp_o ),
+    .mst_req_o  ( mst_req_o  ),
+    .mst_resp_i ( mst_resp_i )
+  );
+endmodule
+
+
+module synth_axi_throttle #(
+  parameter int unsigned MaxNumAwPending = 32'd4,
+  parameter int unsigned MaxNumArPending = 32'd4,
+  parameter int unsigned AddrWidth       = 32'd64,
+  parameter int unsigned DataWidth       = 32'd64,
+  parameter int unsigned IdWidth         = 32'd8,
+  parameter int unsigned UserWidth       = 32'd8
+) (
+  input logic clk_i,
+  input logic rst_ni
+);
+  `AXI_TYPEDEF_ALL(axi,
+    logic [AddrWidth-1:0],
+    logic [IdWidth-1:0],
+    logic [DataWidth-1:0],
+    logic [DataWidth/8-1:0],
+    logic [UserWidth-1:0])
+
+  localparam int unsigned WCntWidth = $clog2(MaxNumAwPending + 1);
+  localparam int unsigned RCntWidth = $clog2(MaxNumArPending + 1);
+
+  axi_req_t                  req_i, req_o;
+  axi_resp_t                 rsp_o, rsp_i;
+  logic [WCntWidth-1:0]      w_credit_i;
+  logic [RCntWidth-1:0]      r_credit_i;
+
+  axi_throttle #(
+    .MaxNumAwPending ( MaxNumAwPending ),
+    .MaxNumArPending ( MaxNumArPending ),
+    .axi_req_t       ( axi_req_t      ),
+    .axi_rsp_t       ( axi_resp_t     )
+  ) i_axi_throttle (
+    .clk_i,
+    .rst_ni,
+    .req_i      ( req_i      ),
+    .rsp_o      ( rsp_o      ),
+    .req_o      ( req_o      ),
+    .rsp_i      ( rsp_i      ),
+    .w_credit_i ( w_credit_i ),
+    .r_credit_i ( r_credit_i )
+  );
+endmodule
+
+
+module synth_axi_inval_filter #(
+  parameter int unsigned MaxTxns     = 32'd4,
+  parameter int unsigned AddrWidth   = 32'd64,
+  parameter int unsigned L1LineWidth = 32'd64,
+  parameter int unsigned DataWidth   = 32'd64,
+  parameter int unsigned IdWidth     = 32'd8,
+  parameter int unsigned UserWidth   = 32'd8
+) (
+  input logic clk_i,
+  input logic rst_ni
+);
+  `AXI_TYPEDEF_ALL(axi,
+    logic [AddrWidth-1:0],
+    logic [IdWidth-1:0],
+    logic [DataWidth-1:0],
+    logic [DataWidth/8-1:0],
+    logic [UserWidth-1:0])
+
+  axi_req_t             slv_req_i, mst_req_o;
+  axi_resp_t            slv_resp_o, mst_resp_i;
+  logic                 en_i;
+  logic [AddrWidth-1:0] inval_addr_o;
+  logic                 inval_valid_o, inval_ready_i;
+
+  axi_inval_filter #(
+    .MaxTxns     ( MaxTxns         ),
+    .AddrWidth   ( AddrWidth       ),
+    .L1LineWidth ( L1LineWidth     ),
+    .aw_chan_t   ( axi_aw_chan_t   ),
+    .req_t       ( axi_req_t      ),
+    .resp_t      ( axi_resp_t     )
+  ) i_axi_inval_filter (
+    .clk_i,
+    .rst_ni,
+    .en_i          ( en_i          ),
+    .slv_req_i     ( slv_req_i     ),
+    .slv_resp_o    ( slv_resp_o    ),
+    .mst_req_o     ( mst_req_o     ),
+    .mst_resp_i    ( mst_resp_i    ),
+    .inval_addr_o  ( inval_addr_o  ),
+    .inval_valid_o ( inval_valid_o ),
+    .inval_ready_i ( inval_ready_i )
+  );
+endmodule
+
+
+module synth_axi_id_serialize #(
+  parameter int unsigned AxiSlvPortIdWidth    = 32'd8,
+  parameter int unsigned AxiMstPortIdWidth    = 32'd4,
+  parameter int unsigned AxiMstPortMaxUniqIds = 32'd8,
+  parameter int unsigned AddrWidth            = 32'd64,
+  parameter int unsigned DataWidth            = 32'd64,
+  parameter int unsigned UserWidth            = 32'd8
+) (
+  input logic clk_i,
+  input logic rst_ni
+);
+  `AXI_TYPEDEF_ALL(slv_axi,
+    logic [AddrWidth-1:0],
+    logic [AxiSlvPortIdWidth-1:0],
+    logic [DataWidth-1:0],
+    logic [DataWidth/8-1:0],
+    logic [UserWidth-1:0])
+  `AXI_TYPEDEF_ALL(mst_axi,
+    logic [AddrWidth-1:0],
+    logic [AxiMstPortIdWidth-1:0],
+    logic [DataWidth-1:0],
+    logic [DataWidth/8-1:0],
+    logic [UserWidth-1:0])
+
+  slv_axi_req_t  slv_req_i;
+  slv_axi_resp_t slv_resp_o;
+  mst_axi_req_t  mst_req_o;
+  mst_axi_resp_t mst_resp_i;
+
+  axi_id_serialize #(
+    .AxiSlvPortIdWidth    ( AxiSlvPortIdWidth    ),
+    .AxiSlvPortMaxTxns    ( 32'd16               ),
+    .AxiMstPortIdWidth    ( AxiMstPortIdWidth    ),
+    .AxiMstPortMaxUniqIds ( AxiMstPortMaxUniqIds ),
+    .AxiMstPortMaxTxnsPerId( 32'd4              ),
+    .AxiAddrWidth         ( AddrWidth            ),
+    .AxiDataWidth         ( DataWidth            ),
+    .AxiUserWidth         ( UserWidth            ),
+    .slv_req_t            ( slv_axi_req_t        ),
+    .slv_resp_t           ( slv_axi_resp_t       ),
+    .mst_req_t            ( mst_axi_req_t        ),
+    .mst_resp_t           ( mst_axi_resp_t       )
+  ) i_axi_id_serialize (
+    .clk_i,
+    .rst_ni,
+    .slv_req_i  ( slv_req_i  ),
+    .slv_resp_o ( slv_resp_o ),
+    .mst_req_o  ( mst_req_o  ),
+    .mst_resp_i ( mst_resp_i )
+  );
+endmodule
+
+
+module synth_axi_id_remap #(
+  parameter int unsigned AxiSlvPortIdWidth    = 32'd8,
+  parameter int unsigned AxiMstPortIdWidth    = 32'd4,
+  parameter int unsigned AxiSlvPortMaxUniqIds = 32'd8,
+  parameter int unsigned AxiMaxTxnsPerId      = 32'd4,
+  parameter int unsigned AddrWidth            = 32'd64,
+  parameter int unsigned DataWidth            = 32'd64,
+  parameter int unsigned UserWidth            = 32'd8
+) (
+  input logic clk_i,
+  input logic rst_ni
+);
+  `AXI_TYPEDEF_ALL(slv_axi,
+    logic [AddrWidth-1:0],
+    logic [AxiSlvPortIdWidth-1:0],
+    logic [DataWidth-1:0],
+    logic [DataWidth/8-1:0],
+    logic [UserWidth-1:0])
+  `AXI_TYPEDEF_ALL(mst_axi,
+    logic [AddrWidth-1:0],
+    logic [AxiMstPortIdWidth-1:0],
+    logic [DataWidth-1:0],
+    logic [DataWidth/8-1:0],
+    logic [UserWidth-1:0])
+
+  slv_axi_req_t  slv_req_i;
+  slv_axi_resp_t slv_resp_o;
+  mst_axi_req_t  mst_req_o;
+  mst_axi_resp_t mst_resp_i;
+
+  axi_id_remap #(
+    .AxiSlvPortIdWidth    ( AxiSlvPortIdWidth    ),
+    .AxiSlvPortMaxUniqIds ( AxiSlvPortMaxUniqIds ),
+    .AxiMaxTxnsPerId      ( AxiMaxTxnsPerId      ),
+    .AxiMstPortIdWidth    ( AxiMstPortIdWidth    ),
+    .slv_req_t            ( slv_axi_req_t        ),
+    .slv_resp_t           ( slv_axi_resp_t       ),
+    .mst_req_t            ( mst_axi_req_t        ),
+    .mst_resp_t           ( mst_axi_resp_t       )
+  ) i_axi_id_remap (
+    .clk_i,
+    .rst_ni,
+    .slv_req_i  ( slv_req_i  ),
+    .slv_resp_o ( slv_resp_o ),
+    .mst_req_o  ( mst_req_o  ),
+    .mst_resp_i ( mst_resp_i )
+  );
+endmodule
+
+
+module synth_axi_id_prepend #(
+  parameter int unsigned NoBus             = 32'd1,
+  parameter int unsigned AddrWidth         = 32'd64,
+  parameter int unsigned DataWidth         = 32'd64,
+  parameter int unsigned AxiIdWidthSlvPort = 32'd4,
+  parameter int unsigned AxiIdWidthMstPort = 32'd6,
+  parameter int unsigned UserWidth         = 32'd8
+) (
+  input logic clk_i,
+  input logic rst_ni
+);
+  localparam int unsigned PreIdWidth = AxiIdWidthMstPort - AxiIdWidthSlvPort;
+
+  `AXI_TYPEDEF_ALL(slv_axi,
+    logic [AddrWidth-1:0],
+    logic [AxiIdWidthSlvPort-1:0],
+    logic [DataWidth-1:0],
+    logic [DataWidth/8-1:0],
+    logic [UserWidth-1:0])
+  `AXI_TYPEDEF_ALL(mst_axi,
+    logic [AddrWidth-1:0],
+    logic [AxiIdWidthMstPort-1:0],
+    logic [DataWidth-1:0],
+    logic [DataWidth/8-1:0],
+    logic [UserWidth-1:0])
+
+  logic             [PreIdWidth-1:0]  pre_id_i;
+  slv_axi_aw_chan_t [NoBus-1:0]       slv_aw_chans_i;
+  logic             [NoBus-1:0]       slv_aw_valids_i, slv_aw_readies_o;
+  slv_axi_w_chan_t  [NoBus-1:0]       slv_w_chans_i;
+  logic             [NoBus-1:0]       slv_w_valids_i,  slv_w_readies_o;
+  slv_axi_b_chan_t  [NoBus-1:0]       slv_b_chans_o;
+  logic             [NoBus-1:0]       slv_b_valids_o,  slv_b_readies_i;
+  slv_axi_ar_chan_t [NoBus-1:0]       slv_ar_chans_i;
+  logic             [NoBus-1:0]       slv_ar_valids_i, slv_ar_readies_o;
+  slv_axi_r_chan_t  [NoBus-1:0]       slv_r_chans_o;
+  logic             [NoBus-1:0]       slv_r_valids_o,  slv_r_readies_i;
+  mst_axi_aw_chan_t [NoBus-1:0]       mst_aw_chans_o;
+  logic             [NoBus-1:0]       mst_aw_valids_o, mst_aw_readies_i;
+  mst_axi_w_chan_t  [NoBus-1:0]       mst_w_chans_o;
+  logic             [NoBus-1:0]       mst_w_valids_o,  mst_w_readies_i;
+  mst_axi_b_chan_t  [NoBus-1:0]       mst_b_chans_i;
+  logic             [NoBus-1:0]       mst_b_valids_i,  mst_b_readies_o;
+  mst_axi_ar_chan_t [NoBus-1:0]       mst_ar_chans_o;
+  logic             [NoBus-1:0]       mst_ar_valids_o, mst_ar_readies_i;
+  mst_axi_r_chan_t  [NoBus-1:0]       mst_r_chans_i;
+  logic             [NoBus-1:0]       mst_r_valids_i,  mst_r_readies_o;
+
+  axi_id_prepend #(
+    .NoBus             ( NoBus              ),
+    .AxiIdWidthSlvPort ( AxiIdWidthSlvPort  ),
+    .AxiIdWidthMstPort ( AxiIdWidthMstPort  ),
+    .slv_aw_chan_t     ( slv_axi_aw_chan_t  ),
+    .slv_w_chan_t      ( slv_axi_w_chan_t   ),
+    .slv_b_chan_t      ( slv_axi_b_chan_t   ),
+    .slv_ar_chan_t     ( slv_axi_ar_chan_t  ),
+    .slv_r_chan_t      ( slv_axi_r_chan_t   ),
+    .mst_aw_chan_t     ( mst_axi_aw_chan_t  ),
+    .mst_w_chan_t      ( mst_axi_w_chan_t   ),
+    .mst_b_chan_t      ( mst_axi_b_chan_t   ),
+    .mst_ar_chan_t     ( mst_axi_ar_chan_t  ),
+    .mst_r_chan_t      ( mst_axi_r_chan_t   )
+  ) i_axi_id_prepend (
+    .pre_id_i,
+    .slv_aw_chans_i,  .slv_aw_valids_i,  .slv_aw_readies_o,
+    .slv_w_chans_i,   .slv_w_valids_i,   .slv_w_readies_o,
+    .slv_b_chans_o,   .slv_b_valids_o,   .slv_b_readies_i,
+    .slv_ar_chans_i,  .slv_ar_valids_i,  .slv_ar_readies_o,
+    .slv_r_chans_o,   .slv_r_valids_o,   .slv_r_readies_i,
+    .mst_aw_chans_o,  .mst_aw_valids_o,  .mst_aw_readies_i,
+    .mst_w_chans_o,   .mst_w_valids_o,   .mst_w_readies_i,
+    .mst_b_chans_i,   .mst_b_valids_i,   .mst_b_readies_o,
+    .mst_ar_chans_o,  .mst_ar_valids_o,  .mst_ar_readies_i,
+    .mst_r_chans_i,   .mst_r_valids_i,   .mst_r_readies_o
+  );
+endmodule
+
+
+module synth_axi_demux_id_counters #(
+  parameter int unsigned AxiIdBits    = 32'd3,
+  parameter int unsigned CounterWidth = 32'd4,
+  parameter int unsigned NoMstPorts   = 32'd4
+) (
+  input logic clk_i,
+  input logic rst_ni
+);
+  localparam int unsigned SelectWidth = $clog2(NoMstPorts);
+  typedef logic [SelectWidth-1:0] mst_port_select_t;
+
+  logic [AxiIdBits-1:0]   lookup_axi_id_i;
+  mst_port_select_t        lookup_mst_select_o;
+  logic                    lookup_mst_select_occupied_o;
+  logic                    full_o;
+  logic [AxiIdBits-1:0]   push_axi_id_i;
+  mst_port_select_t        push_mst_select_i;
+  logic                    push_i;
+  logic [AxiIdBits-1:0]   inject_axi_id_i;
+  logic                    inject_i;
+  logic [AxiIdBits-1:0]   pop_axi_id_i;
+  logic                    pop_i;
+  logic                    any_outstanding_trx_o;
+
+  axi_demux_id_counters #(
+    .AxiIdBits         ( AxiIdBits          ),
+    .CounterWidth      ( CounterWidth       ),
+    .mst_port_select_t ( mst_port_select_t  )
+  ) i_axi_demux_id_counters (
+    .clk_i,
+    .rst_ni,
+    .lookup_axi_id_i              ( lookup_axi_id_i              ),
+    .lookup_mst_select_o          ( lookup_mst_select_o          ),
+    .lookup_mst_select_occupied_o ( lookup_mst_select_occupied_o ),
+    .full_o                       ( full_o                       ),
+    .push_axi_id_i                ( push_axi_id_i                ),
+    .push_mst_select_i            ( push_mst_select_i            ),
+    .push_i                       ( push_i                       ),
+    .inject_axi_id_i              ( inject_axi_id_i              ),
+    .inject_i                     ( inject_i                     ),
+    .pop_axi_id_i                 ( pop_axi_id_i                 ),
+    .pop_i                        ( pop_i                        ),
+    .any_outstanding_trx_o        ( any_outstanding_trx_o        )
+  );
+endmodule
+
+
+module synth_axi_to_mem #(
+  parameter int unsigned NumBanks  = 32'd1,
+  parameter int unsigned AddrWidth = 32'd64,
+  parameter int unsigned DataWidth = 32'd64,
+  parameter int unsigned IdWidth   = 32'd8,
+  parameter int unsigned UserWidth = 32'd8
+) (
+  input logic clk_i,
+  input logic rst_ni
+);
+  `AXI_TYPEDEF_ALL(axi,
+    logic [AddrWidth-1:0],
+    logic [IdWidth-1:0],
+    logic [DataWidth-1:0],
+    logic [DataWidth/8-1:0],
+    logic [UserWidth-1:0])
+
+  typedef logic [AddrWidth-1:0]          addr_t;
+  typedef logic [DataWidth/NumBanks-1:0] mem_data_t;
+  typedef logic [DataWidth/NumBanks/8-1:0] mem_strb_t;
+
+  axi_req_t                        axi_req_i;
+  axi_resp_t                       axi_resp_o;
+  logic                            busy_o;
+  logic           [NumBanks-1:0]   mem_req_o;
+  logic           [NumBanks-1:0]   mem_gnt_i;
+  addr_t          [NumBanks-1:0]   mem_addr_o;
+  mem_data_t      [NumBanks-1:0]   mem_wdata_o;
+  mem_strb_t      [NumBanks-1:0]   mem_strb_o;
+  axi_pkg::atop_t [NumBanks-1:0]   mem_atop_o;
+  logic           [NumBanks-1:0]   mem_we_o;
+  logic           [NumBanks-1:0]   mem_rvalid_i;
+  mem_data_t      [NumBanks-1:0]   mem_rdata_i;
+
+  axi_to_mem #(
+    .axi_req_t  ( axi_req_t  ),
+    .axi_resp_t ( axi_resp_t ),
+    .AddrWidth  ( AddrWidth  ),
+    .DataWidth  ( DataWidth  ),
+    .IdWidth    ( IdWidth    ),
+    .NumBanks   ( NumBanks   )
+  ) i_axi_to_mem (
+    .clk_i,
+    .rst_ni,
+    .busy_o       ( busy_o      ),
+    .axi_req_i    ( axi_req_i   ),
+    .axi_resp_o   ( axi_resp_o  ),
+    .mem_req_o    ( mem_req_o   ),
+    .mem_gnt_i    ( mem_gnt_i   ),
+    .mem_addr_o   ( mem_addr_o  ),
+    .mem_wdata_o  ( mem_wdata_o ),
+    .mem_strb_o   ( mem_strb_o  ),
+    .mem_atop_o   ( mem_atop_o  ),
+    .mem_we_o     ( mem_we_o    ),
+    .mem_rvalid_i ( mem_rvalid_i),
+    .mem_rdata_i  ( mem_rdata_i )
+  );
+endmodule
+
+
+module synth_axi_to_mem_interleaved #(
+  parameter int unsigned NumBanks  = 32'd1,
+  parameter int unsigned AddrWidth = 32'd64,
+  parameter int unsigned DataWidth = 32'd64,
+  parameter int unsigned IdWidth   = 32'd8,
+  parameter int unsigned UserWidth = 32'd8
+) (
+  input logic clk_i,
+  input logic rst_ni
+);
+  `AXI_TYPEDEF_ALL(axi,
+    logic [AddrWidth-1:0],
+    logic [IdWidth-1:0],
+    logic [DataWidth-1:0],
+    logic [DataWidth/8-1:0],
+    logic [UserWidth-1:0])
+
+  typedef logic [AddrWidth-1:0]            addr_t;
+  typedef logic [DataWidth/NumBanks-1:0]   mem_data_t;
+  typedef logic [DataWidth/NumBanks/8-1:0] mem_strb_t;
+
+  axi_req_t                        axi_req_i;
+  axi_resp_t                       axi_resp_o;
+  logic                            test_i, busy_o;
+  logic           [NumBanks-1:0]   mem_req_o;
+  logic           [NumBanks-1:0]   mem_gnt_i;
+  addr_t          [NumBanks-1:0]   mem_addr_o;
+  mem_data_t      [NumBanks-1:0]   mem_wdata_o;
+  mem_strb_t      [NumBanks-1:0]   mem_strb_o;
+  axi_pkg::atop_t [NumBanks-1:0]   mem_atop_o;
+  logic           [NumBanks-1:0]   mem_we_o;
+  logic           [NumBanks-1:0]   mem_rvalid_i;
+  mem_data_t      [NumBanks-1:0]   mem_rdata_i;
+
+  axi_to_mem_interleaved #(
+    .axi_req_t  ( axi_req_t  ),
+    .axi_resp_t ( axi_resp_t ),
+    .AddrWidth  ( AddrWidth  ),
+    .DataWidth  ( DataWidth  ),
+    .IdWidth    ( IdWidth    ),
+    .NumBanks   ( NumBanks   )
+  ) i_axi_to_mem_interleaved (
+    .clk_i,
+    .rst_ni,
+    .test_i       ( test_i      ),
+    .busy_o       ( busy_o      ),
+    .axi_req_i    ( axi_req_i   ),
+    .axi_resp_o   ( axi_resp_o  ),
+    .mem_req_o    ( mem_req_o   ),
+    .mem_gnt_i    ( mem_gnt_i   ),
+    .mem_addr_o   ( mem_addr_o  ),
+    .mem_wdata_o  ( mem_wdata_o ),
+    .mem_strb_o   ( mem_strb_o  ),
+    .mem_atop_o   ( mem_atop_o  ),
+    .mem_we_o     ( mem_we_o    ),
+    .mem_rvalid_i ( mem_rvalid_i),
+    .mem_rdata_i  ( mem_rdata_i )
+  );
+endmodule
+
+
+module synth_axi_to_mem_split #(
+  parameter int unsigned MemDataWidth = 32'd32,
+  parameter int unsigned AddrWidth    = 32'd64,
+  parameter int unsigned AxiDataWidth = 32'd64,
+  parameter int unsigned IdWidth      = 32'd8,
+  parameter int unsigned UserWidth    = 32'd8
+) (
+  input logic clk_i,
+  input logic rst_ni
+);
+  localparam int unsigned NumMemPorts = 2 * AxiDataWidth / MemDataWidth;
+
+  `AXI_TYPEDEF_ALL(axi,
+    logic [AddrWidth-1:0],
+    logic [IdWidth-1:0],
+    logic [AxiDataWidth-1:0],
+    logic [AxiDataWidth/8-1:0],
+    logic [UserWidth-1:0])
+
+  typedef logic [AddrWidth-1:0]      addr_t;
+  typedef logic [MemDataWidth-1:0]   mem_data_t;
+  typedef logic [MemDataWidth/8-1:0] mem_strb_t;
+
+  axi_req_t                            axi_req_i;
+  axi_resp_t                           axi_resp_o;
+  logic                                test_i, busy_o;
+  logic           [NumMemPorts-1:0]    mem_req_o;
+  logic           [NumMemPorts-1:0]    mem_gnt_i;
+  addr_t          [NumMemPorts-1:0]    mem_addr_o;
+  mem_data_t      [NumMemPorts-1:0]    mem_wdata_o;
+  mem_strb_t      [NumMemPorts-1:0]    mem_strb_o;
+  axi_pkg::atop_t [NumMemPorts-1:0]    mem_atop_o;
+  logic           [NumMemPorts-1:0]    mem_we_o;
+  logic           [NumMemPorts-1:0]    mem_rvalid_i;
+  mem_data_t      [NumMemPorts-1:0]    mem_rdata_i;
+
+  axi_to_mem_split #(
+    .axi_req_t    ( axi_req_t    ),
+    .axi_resp_t   ( axi_resp_t   ),
+    .AddrWidth    ( AddrWidth    ),
+    .AxiDataWidth ( AxiDataWidth ),
+    .IdWidth      ( IdWidth      ),
+    .MemDataWidth ( MemDataWidth )
+  ) i_axi_to_mem_split (
+    .clk_i,
+    .rst_ni,
+    .test_i       ( test_i      ),
+    .busy_o       ( busy_o      ),
+    .axi_req_i    ( axi_req_i   ),
+    .axi_resp_o   ( axi_resp_o  ),
+    .mem_req_o    ( mem_req_o   ),
+    .mem_gnt_i    ( mem_gnt_i   ),
+    .mem_addr_o   ( mem_addr_o  ),
+    .mem_wdata_o  ( mem_wdata_o ),
+    .mem_strb_o   ( mem_strb_o  ),
+    .mem_atop_o   ( mem_atop_o  ),
+    .mem_we_o     ( mem_we_o    ),
+    .mem_rvalid_i ( mem_rvalid_i),
+    .mem_rdata_i  ( mem_rdata_i )
+  );
+endmodule
+
+
+module synth_axi_to_detailed_mem #(
+  parameter int unsigned NumBanks  = 32'd1,
+  parameter int unsigned AddrWidth = 32'd64,
+  parameter int unsigned DataWidth = 32'd64,
+  parameter int unsigned IdWidth   = 32'd8,
+  parameter int unsigned UserWidth = 32'd8
+) (
+  input logic clk_i,
+  input logic rst_ni
+);
+  `AXI_TYPEDEF_ALL(axi,
+    logic [AddrWidth-1:0],
+    logic [IdWidth-1:0],
+    logic [DataWidth-1:0],
+    logic [DataWidth/8-1:0],
+    logic [UserWidth-1:0])
+
+  typedef logic [AddrWidth-1:0]            addr_t;
+  typedef logic [DataWidth/NumBanks-1:0]   mem_data_t;
+  typedef logic [DataWidth/NumBanks/8-1:0] mem_strb_t;
+  typedef logic [IdWidth-1:0]              mem_id_t;
+  typedef logic [UserWidth-1:0]            mem_user_t;
+
+  axi_req_t                          axi_req_i;
+  axi_resp_t                         axi_resp_o;
+  logic                              busy_o;
+  logic              [NumBanks-1:0]  mem_req_o;
+  logic              [NumBanks-1:0]  mem_gnt_i;
+  addr_t             [NumBanks-1:0]  mem_addr_o;
+  mem_data_t         [NumBanks-1:0]  mem_wdata_o;
+  mem_strb_t         [NumBanks-1:0]  mem_strb_o;
+  axi_pkg::atop_t    [NumBanks-1:0]  mem_atop_o;
+  logic              [NumBanks-1:0]  mem_lock_o;
+  logic              [NumBanks-1:0]  mem_we_o;
+  mem_id_t           [NumBanks-1:0]  mem_id_o;
+  mem_user_t         [NumBanks-1:0]  mem_user_o;
+  axi_pkg::cache_t   [NumBanks-1:0]  mem_cache_o;
+  axi_pkg::prot_t    [NumBanks-1:0]  mem_prot_o;
+  axi_pkg::qos_t     [NumBanks-1:0]  mem_qos_o;
+  axi_pkg::region_t  [NumBanks-1:0]  mem_region_o;
+  logic              [NumBanks-1:0]  mem_rvalid_i;
+  mem_data_t         [NumBanks-1:0]  mem_rdata_i;
+  logic              [NumBanks-1:0]  mem_err_i;
+  logic              [NumBanks-1:0]  mem_exokay_i;
+
+  axi_to_detailed_mem #(
+    .axi_req_t  ( axi_req_t  ),
+    .axi_resp_t ( axi_resp_t ),
+    .AddrWidth  ( AddrWidth  ),
+    .DataWidth  ( DataWidth  ),
+    .IdWidth    ( IdWidth    ),
+    .UserWidth  ( UserWidth  ),
+    .NumBanks   ( NumBanks   )
+  ) i_axi_to_detailed_mem (
+    .clk_i,
+    .rst_ni,
+    .busy_o       ( busy_o       ),
+    .axi_req_i    ( axi_req_i    ),
+    .axi_resp_o   ( axi_resp_o   ),
+    .mem_req_o    ( mem_req_o    ),
+    .mem_gnt_i    ( mem_gnt_i    ),
+    .mem_addr_o   ( mem_addr_o   ),
+    .mem_wdata_o  ( mem_wdata_o  ),
+    .mem_strb_o   ( mem_strb_o   ),
+    .mem_atop_o   ( mem_atop_o   ),
+    .mem_lock_o   ( mem_lock_o   ),
+    .mem_we_o     ( mem_we_o     ),
+    .mem_id_o     ( mem_id_o     ),
+    .mem_user_o   ( mem_user_o   ),
+    .mem_cache_o  ( mem_cache_o  ),
+    .mem_prot_o   ( mem_prot_o   ),
+    .mem_qos_o    ( mem_qos_o    ),
+    .mem_region_o ( mem_region_o ),
+    .mem_rvalid_i ( mem_rvalid_i ),
+    .mem_rdata_i  ( mem_rdata_i  ),
+    .mem_err_i    ( mem_err_i    ),
+    .mem_exokay_i ( mem_exokay_i )
+  );
+endmodule
+
+
+module synth_axi_from_mem #(
+  parameter int unsigned MaxRequests  = 32'd4,
+  parameter int unsigned MemAddrWidth = 32'd64,
+  parameter int unsigned AxiAddrWidth = 32'd64,
+  parameter int unsigned DataWidth    = 32'd64,
+  parameter int unsigned IdWidth      = 32'd8,
+  parameter int unsigned UserWidth    = 32'd8
+) (
+  input logic clk_i,
+  input logic rst_ni
+);
+  `AXI_TYPEDEF_ALL(axi,
+    logic [AxiAddrWidth-1:0],
+    logic [IdWidth-1:0],
+    logic [DataWidth-1:0],
+    logic [DataWidth/8-1:0],
+    logic [UserWidth-1:0])
+
+  logic                     mem_req_i;
+  logic [MemAddrWidth-1:0]  mem_addr_i;
+  logic                     mem_we_i;
+  logic [DataWidth-1:0]     mem_wdata_i;
+  logic [DataWidth/8-1:0]   mem_be_i;
+  logic                     mem_gnt_o;
+  logic                     mem_rsp_valid_o;
+  logic [DataWidth-1:0]     mem_rsp_rdata_o;
+  logic                     mem_rsp_error_o;
+  axi_pkg::cache_t          slv_aw_cache_i;
+  axi_pkg::cache_t          slv_ar_cache_i;
+  axi_req_t                 axi_req_o;
+  axi_resp_t                axi_rsp_i;
+
+  axi_from_mem #(
+    .MemAddrWidth ( MemAddrWidth ),
+    .AxiAddrWidth ( AxiAddrWidth ),
+    .DataWidth    ( DataWidth    ),
+    .MaxRequests  ( MaxRequests  ),
+    .axi_req_t    ( axi_req_t   ),
+    .axi_rsp_t    ( axi_resp_t  )
+  ) i_axi_from_mem (
+    .clk_i,
+    .rst_ni,
+    .mem_req_i       ( mem_req_i       ),
+    .mem_addr_i      ( mem_addr_i      ),
+    .mem_we_i        ( mem_we_i        ),
+    .mem_wdata_i     ( mem_wdata_i     ),
+    .mem_be_i        ( mem_be_i        ),
+    .mem_gnt_o       ( mem_gnt_o       ),
+    .mem_rsp_valid_o ( mem_rsp_valid_o ),
+    .mem_rsp_rdata_o ( mem_rsp_rdata_o ),
+    .mem_rsp_error_o ( mem_rsp_error_o ),
+    .slv_aw_cache_i  ( slv_aw_cache_i  ),
+    .slv_ar_cache_i  ( slv_ar_cache_i  ),
+    .axi_req_o       ( axi_req_o       ),
+    .axi_rsp_i       ( axi_rsp_i       )
+  );
+endmodule
+
+
+module synth_axi_lite_from_mem #(
+  parameter int unsigned MaxRequests  = 32'd4,
+  parameter int unsigned MemAddrWidth = 32'd64,
+  parameter int unsigned AxiAddrWidth = 32'd64,
+  parameter int unsigned DataWidth    = 32'd32
+) (
+  input logic clk_i,
+  input logic rst_ni
+);
+  `AXI_LITE_TYPEDEF_ALL(lite,
+    logic [AxiAddrWidth-1:0],
+    logic [DataWidth-1:0],
+    logic [DataWidth/8-1:0])
+
+  logic                    mem_req_i;
+  logic [MemAddrWidth-1:0] mem_addr_i;
+  logic                    mem_we_i;
+  logic [DataWidth-1:0]    mem_wdata_i;
+  logic [DataWidth/8-1:0]  mem_be_i;
+  logic                    mem_gnt_o;
+  logic                    mem_rsp_valid_o;
+  logic [DataWidth-1:0]    mem_rsp_rdata_o;
+  logic                    mem_rsp_error_o;
+  lite_req_t               axi_req_o;
+  lite_resp_t              axi_rsp_i;
+
+  axi_lite_from_mem #(
+    .MemAddrWidth ( MemAddrWidth ),
+    .AxiAddrWidth ( AxiAddrWidth ),
+    .DataWidth    ( DataWidth    ),
+    .MaxRequests  ( MaxRequests  ),
+    .axi_req_t    ( lite_req_t  ),
+    .axi_rsp_t    ( lite_resp_t )
+  ) i_axi_lite_from_mem (
+    .clk_i,
+    .rst_ni,
+    .mem_req_i       ( mem_req_i       ),
+    .mem_addr_i      ( mem_addr_i      ),
+    .mem_we_i        ( mem_we_i        ),
+    .mem_wdata_i     ( mem_wdata_i     ),
+    .mem_be_i        ( mem_be_i        ),
+    .mem_gnt_o       ( mem_gnt_o       ),
+    .mem_rsp_valid_o ( mem_rsp_valid_o ),
+    .mem_rsp_rdata_o ( mem_rsp_rdata_o ),
+    .mem_rsp_error_o ( mem_rsp_error_o ),
+    .axi_req_o       ( axi_req_o       ),
+    .axi_rsp_i       ( axi_rsp_i       )
+  );
+endmodule
+
+
+module synth_axi_interleaved_xbar #(
+  parameter int unsigned NoSlvPorts = 32'd1,
+  parameter int unsigned NoMstPorts = 32'd1,
+  parameter int unsigned AddrWidth  = 32'd64,
+  parameter int unsigned DataWidth  = 32'd64,
+  parameter int unsigned SlvIdWidth = 32'd4,
+  parameter int unsigned UserWidth  = 32'd4
+) (
+  input logic clk_i,
+  input logic rst_ni
+);
+  localparam int unsigned MstIdWidth       = SlvIdWidth + (NoSlvPorts > 1 ? $clog2(NoSlvPorts) : 0);
+  localparam int unsigned MstPortsIdxWidth = (NoMstPorts > 1) ? $clog2(NoMstPorts) : 1;
+  localparam axi_pkg::xbar_cfg_t XbarCfg = '{
+    NoSlvPorts:         NoSlvPorts,
+    NoMstPorts:         NoMstPorts,
+    MaxMstTrans:        32'd4,
+    MaxSlvTrans:        32'd4,
+    FallThrough:        1'b0,
+    LatencyMode:        axi_pkg::CUT_ALL_PORTS,
+    PipelineStages:     32'd0,
+    AxiIdWidthSlvPorts: SlvIdWidth,
+    AxiIdUsedSlvPorts:  SlvIdWidth,
+    UniqueIds:          1'b0,
+    AxiAddrWidth:       AddrWidth,
+    AxiDataWidth:       DataWidth,
+    NoAddrRules:        NoMstPorts
+  };
+
+  `AXI_TYPEDEF_ALL(slv_axi,
+    logic [AddrWidth-1:0],
+    logic [SlvIdWidth-1:0],
+    logic [DataWidth-1:0],
+    logic [DataWidth/8-1:0],
+    logic [UserWidth-1:0])
+  `AXI_TYPEDEF_ALL(mst_axi,
+    logic [AddrWidth-1:0],
+    logic [MstIdWidth-1:0],
+    logic [DataWidth-1:0],
+    logic [DataWidth/8-1:0],
+    logic [UserWidth-1:0])
+
+  logic                                         test_i;
+  slv_axi_req_t  [NoSlvPorts-1:0]              slv_ports_req_i;
+  slv_axi_resp_t [NoSlvPorts-1:0]              slv_ports_resp_o;
+  mst_axi_req_t  [NoMstPorts-1:0]              mst_ports_req_o;
+  mst_axi_resp_t [NoMstPorts-1:0]              mst_ports_resp_i;
+  axi_pkg::xbar_rule_64_t [NoMstPorts-1:0]    addr_map_i;
+  logic                                        interleaved_mode_ena_i;
+  logic           [NoSlvPorts-1:0]             en_default_mst_port_i;
+  logic [NoSlvPorts-1:0][MstPortsIdxWidth-1:0] default_mst_port_i;
+
+  axi_interleaved_xbar #(
+    .Cfg           ( XbarCfg                  ),
+    .slv_aw_chan_t ( slv_axi_aw_chan_t        ),
+    .mst_aw_chan_t ( mst_axi_aw_chan_t        ),
+    .w_chan_t      ( slv_axi_w_chan_t         ),
+    .slv_b_chan_t  ( slv_axi_b_chan_t         ),
+    .mst_b_chan_t  ( mst_axi_b_chan_t         ),
+    .slv_ar_chan_t ( slv_axi_ar_chan_t        ),
+    .mst_ar_chan_t ( mst_axi_ar_chan_t        ),
+    .slv_r_chan_t  ( slv_axi_r_chan_t         ),
+    .mst_r_chan_t  ( mst_axi_r_chan_t         ),
+    .slv_req_t     ( slv_axi_req_t           ),
+    .slv_resp_t    ( slv_axi_resp_t          ),
+    .mst_req_t     ( mst_axi_req_t           ),
+    .mst_resp_t    ( mst_axi_resp_t          ),
+    .rule_t        ( axi_pkg::xbar_rule_64_t )
+  ) i_axi_interleaved_xbar (
+    .clk_i,
+    .rst_ni,
+    .test_i                  ( test_i                  ),
+    .slv_ports_req_i         ( slv_ports_req_i         ),
+    .slv_ports_resp_o        ( slv_ports_resp_o        ),
+    .mst_ports_req_o         ( mst_ports_req_o         ),
+    .mst_ports_resp_i        ( mst_ports_resp_i        ),
+    .addr_map_i              ( addr_map_i              ),
+    .interleaved_mode_ena_i  ( interleaved_mode_ena_i  ),
+    .en_default_mst_port_i   ( en_default_mst_port_i   ),
+    .default_mst_port_i      ( default_mst_port_i      )
+  );
+endmodule
+
+
+module synth_axi_xp #(
+  parameter int unsigned NumSlvPorts = 32'd1,
+  parameter int unsigned NumMstPorts = 32'd1,
+  parameter int unsigned AddrWidth   = 32'd64,
+  parameter int unsigned DataWidth   = 32'd64,
+  parameter int unsigned IdWidth     = 32'd4,
+  parameter int unsigned UserWidth   = 32'd4,
+  parameter int unsigned NumAddrRules = 32'd1
+) (
+  input logic clk_i,
+  input logic rst_ni
+);
+  `AXI_TYPEDEF_ALL(axi,
+    logic [AddrWidth-1:0],
+    logic [IdWidth-1:0],
+    logic [DataWidth-1:0],
+    logic [DataWidth/8-1:0],
+    logic [UserWidth-1:0])
+
+  logic                             test_en_i;
+  axi_req_t  [NumSlvPorts-1:0]      slv_req_i;
+  axi_resp_t [NumSlvPorts-1:0]      slv_resp_o;
+  axi_req_t  [NumMstPorts-1:0]      mst_req_o;
+  axi_resp_t [NumMstPorts-1:0]      mst_resp_i;
+  axi_pkg::xbar_rule_64_t [NumAddrRules-1:0] addr_map_i;
+
+  axi_xp #(
+    .AxiAddrWidth         ( AddrWidth  ),
+    .AxiDataWidth         ( DataWidth  ),
+    .AxiIdWidth           ( IdWidth    ),
+    .AxiUserWidth         ( UserWidth  ),
+    .NumSlvPorts          ( NumSlvPorts ),
+    .NumMstPorts          ( NumMstPorts ),
+    .AxiSlvPortMaxUniqIds ( 32'd4      ),
+    .AxiSlvPortMaxTxnsPerId( 32'd4     ),
+    .AxiSlvPortMaxTxns    ( 32'd16     ),
+    .AxiMstPortMaxUniqIds ( 32'd4      ),
+    .AxiMstPortMaxTxnsPerId( 32'd4     ),
+    .NumAddrRules         ( NumAddrRules ),
+    .axi_req_t            ( axi_req_t  ),
+    .axi_resp_t           ( axi_resp_t ),
+    .rule_t               ( axi_pkg::xbar_rule_64_t )
+  ) i_axi_xp (
+    .clk_i,
+    .rst_ni,
+    .test_en_i  ( test_en_i  ),
+    .slv_req_i  ( slv_req_i  ),
+    .slv_resp_o ( slv_resp_o ),
+    .mst_req_o  ( mst_req_o  ),
+    .mst_resp_i ( mst_resp_i ),
+    .addr_map_i ( addr_map_i )
+  );
+endmodule
+
+
+module synth_axi_burst_unwrap #(
+  parameter int unsigned MaxReadTxns  = 32'd4,
+  parameter int unsigned MaxWriteTxns = 32'd4,
+  parameter int unsigned AddrWidth    = 32'd64,
+  parameter int unsigned DataWidth    = 32'd64,
+  parameter int unsigned IdWidth      = 32'd8,
+  parameter int unsigned UserWidth    = 32'd8
+) (
+  input logic clk_i,
+  input logic rst_ni
+);
+  `AXI_TYPEDEF_ALL(axi,
+    logic [AddrWidth-1:0],
+    logic [IdWidth-1:0],
+    logic [DataWidth-1:0],
+    logic [DataWidth/8-1:0],
+    logic [UserWidth-1:0])
+
+  axi_req_t  slv_req_i, mst_req_o;
+  axi_resp_t slv_resp_o, mst_resp_i;
+
+  axi_burst_unwrap #(
+    .MaxReadTxns  ( MaxReadTxns  ),
+    .MaxWriteTxns ( MaxWriteTxns ),
+    .AddrWidth    ( AddrWidth    ),
+    .DataWidth    ( DataWidth    ),
+    .IdWidth      ( IdWidth      ),
+    .UserWidth    ( UserWidth    ),
+    .axi_req_t    ( axi_req_t   ),
+    .axi_resp_t   ( axi_resp_t  )
+  ) i_axi_burst_unwrap (
+    .clk_i,
+    .rst_ni,
+    .slv_req_i  ( slv_req_i  ),
+    .slv_resp_o ( slv_resp_o ),
+    .mst_req_o  ( mst_req_o  ),
+    .mst_resp_i ( mst_resp_i )
+  );
+endmodule
+
+
+module synth_axi_delayer #(
+  parameter int unsigned AddrWidth       = 32'd64,
+  parameter int unsigned DataWidth       = 32'd64,
+  parameter int unsigned IdWidth         = 32'd8,
+  parameter int unsigned UserWidth       = 32'd8,
+  parameter int unsigned FixedDelayInput  = 32'd1,
+  parameter int unsigned FixedDelayOutput = 32'd1
+) (
+  input logic clk_i,
+  input logic rst_ni
+);
+  `AXI_TYPEDEF_ALL(axi,
+    logic [AddrWidth-1:0],
+    logic [IdWidth-1:0],
+    logic [DataWidth-1:0],
+    logic [DataWidth/8-1:0],
+    logic [UserWidth-1:0])
+
+  axi_req_t  slv_req_i, mst_req_o;
+  axi_resp_t slv_resp_o, mst_resp_i;
+
+  axi_delayer #(
+    .aw_chan_t          ( axi_aw_chan_t    ),
+    .w_chan_t           ( axi_w_chan_t     ),
+    .b_chan_t           ( axi_b_chan_t     ),
+    .ar_chan_t          ( axi_ar_chan_t    ),
+    .r_chan_t           ( axi_r_chan_t     ),
+    .axi_req_t          ( axi_req_t       ),
+    .axi_resp_t         ( axi_resp_t      ),
+    .FixedDelayInput    ( FixedDelayInput  ),
+    .FixedDelayOutput   ( FixedDelayOutput )
+  ) i_axi_delayer (
+    .clk_i,
+    .rst_ni,
+    .slv_req_i  ( slv_req_i  ),
+    .slv_resp_o ( slv_resp_o ),
+    .mst_req_o  ( mst_req_o  ),
+    .mst_resp_i ( mst_resp_i )
+  );
+endmodule
+
+
+module synth_axi_rw_split #(
+  parameter int unsigned AddrWidth = 32'd64,
+  parameter int unsigned DataWidth = 32'd64,
+  parameter int unsigned IdWidth   = 32'd8,
+  parameter int unsigned UserWidth = 32'd8
+) (
+  input logic clk_i,
+  input logic rst_ni
+);
+  `AXI_TYPEDEF_ALL(axi,
+    logic [AddrWidth-1:0],
+    logic [IdWidth-1:0],
+    logic [DataWidth-1:0],
+    logic [DataWidth/8-1:0],
+    logic [UserWidth-1:0])
+
+  axi_req_t  slv_req_i;
+  axi_resp_t slv_resp_o;
+  axi_req_t  mst_read_req_o,  mst_write_req_o;
+  axi_resp_t mst_read_resp_i, mst_write_resp_i;
+
+  axi_rw_split #(
+    .axi_req_t  ( axi_req_t  ),
+    .axi_resp_t ( axi_resp_t )
+  ) i_axi_rw_split (
+    .clk_i,
+    .rst_ni,
+    .slv_req_i       ( slv_req_i       ),
+    .slv_resp_o      ( slv_resp_o      ),
+    .mst_read_req_o  ( mst_read_req_o  ),
+    .mst_read_resp_i ( mst_read_resp_i ),
+    .mst_write_req_o ( mst_write_req_o ),
+    .mst_write_resp_i( mst_write_resp_i)
+  );
+endmodule
+
+
+module synth_axi_zero_mem #(
+  parameter int unsigned NumBanks  = 32'd1,
+  parameter int unsigned AddrWidth = 32'd64,
+  parameter int unsigned DataWidth = 32'd64,
+  parameter int unsigned IdWidth   = 32'd8,
+  parameter int unsigned UserWidth = 32'd8
+) (
+  input logic clk_i,
+  input logic rst_ni
+);
+  `AXI_TYPEDEF_ALL(axi,
+    logic [AddrWidth-1:0],
+    logic [IdWidth-1:0],
+    logic [DataWidth-1:0],
+    logic [DataWidth/8-1:0],
+    logic [UserWidth-1:0])
+
+  axi_req_t  axi_req_i;
+  axi_resp_t axi_resp_o;
+  logic      busy_o;
+
+  axi_zero_mem #(
+    .axi_req_t  ( axi_req_t  ),
+    .axi_resp_t ( axi_resp_t ),
+    .AddrWidth  ( AddrWidth  ),
+    .DataWidth  ( DataWidth  ),
+    .IdWidth    ( IdWidth    ),
+    .NumBanks   ( NumBanks   )
+  ) i_axi_zero_mem (
+    .clk_i,
+    .rst_ni,
+    .busy_o     ( busy_o     ),
+    .axi_req_i  ( axi_req_i  ),
+    .axi_resp_o ( axi_resp_o )
+  );
+endmodule
+
+
+module synth_axi_lfsr #(
+  parameter int unsigned DataWidth = 32'd64,
+  parameter int unsigned AddrWidth = 32'd64,
+  parameter int unsigned IdWidth   = 32'd8,
+  parameter int unsigned UserWidth = 32'd8
+) (
+  input logic clk_i,
+  input logic rst_ni
+);
+  `AXI_TYPEDEF_ALL(axi,
+    logic [AddrWidth-1:0],
+    logic [IdWidth-1:0],
+    logic [DataWidth-1:0],
+    logic [DataWidth/8-1:0],
+    logic [UserWidth-1:0])
+
+  logic      testmode_i;
+  axi_req_t  req_i;
+  axi_resp_t rsp_o;
+  logic      w_ser_data_i, w_ser_data_o, w_ser_en_i;
+  logic      r_ser_data_i, r_ser_data_o, r_ser_en_i;
+
+  axi_lfsr #(
+    .DataWidth ( DataWidth  ),
+    .AddrWidth ( AddrWidth  ),
+    .IdWidth   ( IdWidth    ),
+    .UserWidth ( UserWidth  ),
+    .axi_req_t ( axi_req_t  ),
+    .axi_rsp_t ( axi_resp_t )
+  ) i_axi_lfsr (
+    .clk_i,
+    .rst_ni,
+    .testmode_i    ( testmode_i    ),
+    .req_i         ( req_i         ),
+    .rsp_o         ( rsp_o         ),
+    .w_ser_data_i  ( w_ser_data_i  ),
+    .w_ser_data_o  ( w_ser_data_o  ),
+    .w_ser_en_i    ( w_ser_en_i    ),
+    .r_ser_data_i  ( r_ser_data_i  ),
+    .r_ser_data_o  ( r_ser_data_o  ),
+    .r_ser_en_i    ( r_ser_en_i    )
+  );
+endmodule
+
+
+module synth_axi_lite_lfsr #(
+  parameter int unsigned DataWidth = 32'd32,
+  parameter int unsigned AddrWidth = 32'd64
+) (
+  input logic clk_i,
+  input logic rst_ni
+);
+  `AXI_LITE_TYPEDEF_ALL(lite,
+    logic [AddrWidth-1:0],
+    logic [DataWidth-1:0],
+    logic [DataWidth/8-1:0])
+
+  logic       testmode_i;
+  lite_req_t  req_i;
+  lite_resp_t rsp_o;
+  logic       w_ser_data_i, w_ser_data_o, w_ser_en_i;
+  logic       r_ser_data_i, r_ser_data_o, r_ser_en_i;
+
+  axi_lite_lfsr #(
+    .DataWidth       ( DataWidth    ),
+    .axi_lite_req_t  ( lite_req_t  ),
+    .axi_lite_rsp_t  ( lite_resp_t )
+  ) i_axi_lite_lfsr (
+    .clk_i,
+    .rst_ni,
+    .testmode_i    ( testmode_i    ),
+    .req_i         ( req_i         ),
+    .rsp_o         ( rsp_o         ),
+    .w_ser_data_i  ( w_ser_data_i  ),
+    .w_ser_data_o  ( w_ser_data_o  ),
+    .w_ser_en_i    ( w_ser_en_i    ),
+    .r_ser_data_i  ( r_ser_data_i  ),
+    .r_ser_data_o  ( r_ser_data_o  ),
+    .r_ser_en_i    ( r_ser_en_i    )
+  );
+endmodule
+
+
+module synth_axi_slave_compare #(
+  parameter int unsigned FifoDepth = 32'd4,
+  parameter bit          UseSize   = 1'b0,
+  parameter int unsigned DataWidth = 32'd64,
+  parameter int unsigned AddrWidth = 32'd64,
+  parameter int unsigned IdWidth   = 32'd8,
+  parameter int unsigned UserWidth = 32'd8
+) (
+  input logic clk_i,
+  input logic rst_ni
+);
+  `AXI_TYPEDEF_ALL(axi,
+    logic [AddrWidth-1:0],
+    logic [IdWidth-1:0],
+    logic [DataWidth-1:0],
+    logic [DataWidth/8-1:0],
+    logic [UserWidth-1:0])
+  typedef logic [2**IdWidth-1:0] id_t;
+
+  axi_req_t axi_mst_req_i,
+            axi_ref_req_o,
+            axi_test_req_o;
+  axi_resp_t axi_mst_rsp_o,
+             axi_ref_rsp_i,
+             axi_test_rsp_i;
+  id_t       aw_mismatch_o,
+             b_mismatch_o,
+             ar_mismatch_o,
+             r_mismatch_o;
+  logic      testmode_i,
+             w_mismatch_o,
+             mismatch_o,
+             busy_o;
+
+  axi_slave_compare #(
+    .AxiIdWidth    ( IdWidth       ),
+    .FifoDepth     ( FifoDepth     ),
+    .UseSize       ( UseSize       ),
+    .DataWidth     ( DataWidth     ),
+    .axi_aw_chan_t ( axi_aw_chan_t ),
+    .axi_w_chan_t  ( axi_w_chan_t  ),
+    .axi_b_chan_t  ( axi_b_chan_t  ),
+    .axi_ar_chan_t ( axi_ar_chan_t ),
+    .axi_r_chan_t  ( axi_r_chan_t  ),
+    .axi_req_t     ( axi_req_t    ),
+    .axi_rsp_t     ( axi_resp_t   )
+  ) i_axi_slave_compare (
+    .*
+  );
+endmodule
+
+
+module synth_axi_fifo_delay_dyn #(
+  parameter int unsigned MaxDelay  = 32'd64,
+  parameter int unsigned AddrWidth = 32'd64,
+  parameter int unsigned DataWidth = 32'd64,
+  parameter int unsigned IdWidth   = 32'd8,
+  parameter int unsigned UserWidth = 32'd8
+) (
+  input logic clk_i,
+  input logic rst_ni
+);
+  localparam int unsigned DelayWidth = $clog2(MaxDelay) + 1;
+
+  `AXI_TYPEDEF_ALL(axi,
+    logic [AddrWidth-1:0],
+    logic [IdWidth-1:0],
+    logic [DataWidth-1:0],
+    logic [DataWidth/8-1:0],
+    logic [UserWidth-1:0])
+
+  axi_req_t                slv_req_i, mst_req_o;
+  axi_resp_t               slv_resp_o, mst_resp_i;
+  logic [DelayWidth-1:0]   aw_delay_i, w_delay_i, b_delay_i, ar_delay_i, r_delay_i;
+
+  axi_fifo_delay_dyn #(
+    .aw_chan_t  ( axi_aw_chan_t ),
+    .w_chan_t   ( axi_w_chan_t  ),
+    .b_chan_t   ( axi_b_chan_t  ),
+    .ar_chan_t  ( axi_ar_chan_t ),
+    .r_chan_t   ( axi_r_chan_t  ),
+    .axi_req_t  ( axi_req_t    ),
+    .axi_resp_t ( axi_resp_t   ),
+    .MaxDelay   ( MaxDelay     )
+  ) i_axi_fifo_delay_dyn (
+    .clk_i,
+    .rst_ni,
+    .aw_delay_i ( aw_delay_i ),
+    .w_delay_i  ( w_delay_i  ),
+    .b_delay_i  ( b_delay_i  ),
+    .ar_delay_i ( ar_delay_i ),
+    .r_delay_i  ( r_delay_i  ),
+    .slv_req_i  ( slv_req_i  ),
+    .slv_resp_o ( slv_resp_o ),
+    .mst_req_o  ( mst_req_o  ),
+    .mst_resp_i ( mst_resp_i )
+  );
+endmodule
+
+
+module synth_axi_err_slv #(
+  parameter int unsigned AxiIdWidth = 32'd8,
+  parameter int unsigned AddrWidth  = 32'd64,
+  parameter int unsigned DataWidth  = 32'd64,
+  parameter int unsigned UserWidth  = 32'd8
+) (
+  input logic clk_i,
+  input logic rst_ni
+);
+  `AXI_TYPEDEF_ALL(axi,
+    logic [AddrWidth-1:0],
+    logic [AxiIdWidth-1:0],
+    logic [DataWidth-1:0],
+    logic [DataWidth/8-1:0],
+    logic [UserWidth-1:0])
+
+  axi_req_t  slv_req_i;
+  axi_resp_t slv_resp_o;
+  logic      test_i;
+
+  axi_err_slv #(
+    .AxiIdWidth ( AxiIdWidth ),
+    .axi_req_t  ( axi_req_t  ),
+    .axi_resp_t ( axi_resp_t )
+  ) i_axi_err_slv (
+    .clk_i,
+    .rst_ni,
+    .test_i     ( test_i     ),
+    .slv_req_i  ( slv_req_i  ),
+    .slv_resp_o ( slv_resp_o )
+  );
+endmodule
+
+
+module synth_axi_cdc_src #(
+  parameter int unsigned LogDepth  = 32'd2,
+  parameter int unsigned AddrWidth = 32'd64,
+  parameter int unsigned DataWidth = 32'd64,
+  parameter int unsigned IdWidth   = 32'd8,
+  parameter int unsigned UserWidth = 32'd8
+) (
+  input logic clk_i,
+  input logic rst_ni
+);
+  `AXI_TYPEDEF_ALL(axi,
+    logic [AddrWidth-1:0],
+    logic [IdWidth-1:0],
+    logic [DataWidth-1:0],
+    logic [DataWidth/8-1:0],
+    logic [UserWidth-1:0])
+
+  axi_req_t  src_req_i;
+  axi_resp_t src_resp_o;
+  axi_aw_chan_t [2**LogDepth-1:0] async_data_master_aw_data_o;
+  logic         [LogDepth:0]      async_data_master_aw_wptr_o;
+  logic         [LogDepth:0]      async_data_master_aw_rptr_i;
+  axi_w_chan_t  [2**LogDepth-1:0] async_data_master_w_data_o;
+  logic         [LogDepth:0]      async_data_master_w_wptr_o;
+  logic         [LogDepth:0]      async_data_master_w_rptr_i;
+  axi_b_chan_t  [2**LogDepth-1:0] async_data_master_b_data_i;
+  logic         [LogDepth:0]      async_data_master_b_wptr_i;
+  logic         [LogDepth:0]      async_data_master_b_rptr_o;
+  axi_ar_chan_t [2**LogDepth-1:0] async_data_master_ar_data_o;
+  logic         [LogDepth:0]      async_data_master_ar_wptr_o;
+  logic         [LogDepth:0]      async_data_master_ar_rptr_i;
+  axi_r_chan_t  [2**LogDepth-1:0] async_data_master_r_data_i;
+  logic         [LogDepth:0]      async_data_master_r_wptr_i;
+  logic         [LogDepth:0]      async_data_master_r_rptr_o;
+
+  axi_cdc_src #(
+    .LogDepth   ( LogDepth      ),
+    .aw_chan_t  ( axi_aw_chan_t ),
+    .w_chan_t   ( axi_w_chan_t  ),
+    .b_chan_t   ( axi_b_chan_t  ),
+    .ar_chan_t  ( axi_ar_chan_t ),
+    .r_chan_t   ( axi_r_chan_t  ),
+    .axi_req_t  ( axi_req_t    ),
+    .axi_resp_t ( axi_resp_t   )
+  ) i_axi_cdc_src (
+    .src_clk_i  ( clk_i   ),
+    .src_rst_ni ( rst_ni  ),
+    .src_req_i  ( src_req_i  ),
+    .src_resp_o ( src_resp_o ),
+    .async_data_master_aw_data_o ( async_data_master_aw_data_o ),
+    .async_data_master_aw_wptr_o ( async_data_master_aw_wptr_o ),
+    .async_data_master_aw_rptr_i ( async_data_master_aw_rptr_i ),
+    .async_data_master_w_data_o  ( async_data_master_w_data_o  ),
+    .async_data_master_w_wptr_o  ( async_data_master_w_wptr_o  ),
+    .async_data_master_w_rptr_i  ( async_data_master_w_rptr_i  ),
+    .async_data_master_b_data_i  ( async_data_master_b_data_i  ),
+    .async_data_master_b_wptr_i  ( async_data_master_b_wptr_i  ),
+    .async_data_master_b_rptr_o  ( async_data_master_b_rptr_o  ),
+    .async_data_master_ar_data_o ( async_data_master_ar_data_o ),
+    .async_data_master_ar_wptr_o ( async_data_master_ar_wptr_o ),
+    .async_data_master_ar_rptr_i ( async_data_master_ar_rptr_i ),
+    .async_data_master_r_data_i  ( async_data_master_r_data_i  ),
+    .async_data_master_r_wptr_i  ( async_data_master_r_wptr_i  ),
+    .async_data_master_r_rptr_o  ( async_data_master_r_rptr_o  )
+  );
+endmodule
+
+
+module synth_axi_cdc_dst #(
+  parameter int unsigned LogDepth  = 32'd2,
+  parameter int unsigned AddrWidth = 32'd64,
+  parameter int unsigned DataWidth = 32'd64,
+  parameter int unsigned IdWidth   = 32'd8,
+  parameter int unsigned UserWidth = 32'd8
+) (
+  input logic clk_i,
+  input logic rst_ni
+);
+  `AXI_TYPEDEF_ALL(axi,
+    logic [AddrWidth-1:0],
+    logic [IdWidth-1:0],
+    logic [DataWidth-1:0],
+    logic [DataWidth/8-1:0],
+    logic [UserWidth-1:0])
+
+  axi_aw_chan_t [2**LogDepth-1:0] async_data_slave_aw_data_i;
+  logic         [LogDepth:0]      async_data_slave_aw_wptr_i;
+  logic         [LogDepth:0]      async_data_slave_aw_rptr_o;
+  axi_w_chan_t  [2**LogDepth-1:0] async_data_slave_w_data_i;
+  logic         [LogDepth:0]      async_data_slave_w_wptr_i;
+  logic         [LogDepth:0]      async_data_slave_w_rptr_o;
+  axi_b_chan_t  [2**LogDepth-1:0] async_data_slave_b_data_o;
+  logic         [LogDepth:0]      async_data_slave_b_wptr_o;
+  logic         [LogDepth:0]      async_data_slave_b_rptr_i;
+  axi_ar_chan_t [2**LogDepth-1:0] async_data_slave_ar_data_i;
+  logic         [LogDepth:0]      async_data_slave_ar_wptr_i;
+  logic         [LogDepth:0]      async_data_slave_ar_rptr_o;
+  axi_r_chan_t  [2**LogDepth-1:0] async_data_slave_r_data_o;
+  logic         [LogDepth:0]      async_data_slave_r_wptr_o;
+  logic         [LogDepth:0]      async_data_slave_r_rptr_i;
+  axi_req_t                       dst_req_o;
+  axi_resp_t                      dst_resp_i;
+
+  axi_cdc_dst #(
+    .LogDepth   ( LogDepth      ),
+    .aw_chan_t  ( axi_aw_chan_t ),
+    .w_chan_t   ( axi_w_chan_t  ),
+    .b_chan_t   ( axi_b_chan_t  ),
+    .ar_chan_t  ( axi_ar_chan_t ),
+    .r_chan_t   ( axi_r_chan_t  ),
+    .axi_req_t  ( axi_req_t    ),
+    .axi_resp_t ( axi_resp_t   )
+  ) i_axi_cdc_dst (
+    .async_data_slave_aw_data_i ( async_data_slave_aw_data_i ),
+    .async_data_slave_aw_wptr_i ( async_data_slave_aw_wptr_i ),
+    .async_data_slave_aw_rptr_o ( async_data_slave_aw_rptr_o ),
+    .async_data_slave_w_data_i  ( async_data_slave_w_data_i  ),
+    .async_data_slave_w_wptr_i  ( async_data_slave_w_wptr_i  ),
+    .async_data_slave_w_rptr_o  ( async_data_slave_w_rptr_o  ),
+    .async_data_slave_b_data_o  ( async_data_slave_b_data_o  ),
+    .async_data_slave_b_wptr_o  ( async_data_slave_b_wptr_o  ),
+    .async_data_slave_b_rptr_i  ( async_data_slave_b_rptr_i  ),
+    .async_data_slave_ar_data_i ( async_data_slave_ar_data_i ),
+    .async_data_slave_ar_wptr_i ( async_data_slave_ar_wptr_i ),
+    .async_data_slave_ar_rptr_o ( async_data_slave_ar_rptr_o ),
+    .async_data_slave_r_data_o  ( async_data_slave_r_data_o  ),
+    .async_data_slave_r_wptr_o  ( async_data_slave_r_wptr_o  ),
+    .async_data_slave_r_rptr_i  ( async_data_slave_r_rptr_i  ),
+    .dst_clk_i  ( clk_i    ),
+    .dst_rst_ni ( rst_ni   ),
+    .dst_req_o  ( dst_req_o  ),
+    .dst_resp_i ( dst_resp_i )
+  );
+endmodule
+
+
+module synth_axi_lite_demux #(
+  parameter int unsigned NoMstPorts = 32'd2,
+  parameter int unsigned MaxTrans   = 32'd8,
+  parameter int unsigned AddrWidth  = 32'd64,
+  parameter int unsigned DataWidth  = 32'd32
+) (
+  input logic clk_i,
+  input logic rst_ni
+);
+  localparam int unsigned SelectWidth = (NoMstPorts > 1) ? $clog2(NoMstPorts) : 1;
+  typedef logic [SelectWidth-1:0] select_t;
+
+  `AXI_LITE_TYPEDEF_ALL(lite,
+    logic [AddrWidth-1:0],
+    logic [DataWidth-1:0],
+    logic [DataWidth/8-1:0])
+
+  lite_req_t               slv_req_i;
+  lite_resp_t              slv_resp_o;
+  select_t                 slv_aw_select_i, slv_ar_select_i;
+  lite_req_t  [NoMstPorts-1:0] mst_reqs_o;
+  lite_resp_t [NoMstPorts-1:0] mst_resps_i;
+  logic                    test_i;
+
+  axi_lite_demux #(
+    .aw_chan_t   ( lite_aw_chan_t ),
+    .w_chan_t    ( lite_w_chan_t  ),
+    .b_chan_t    ( lite_b_chan_t  ),
+    .ar_chan_t   ( lite_ar_chan_t ),
+    .r_chan_t    ( lite_r_chan_t  ),
+    .axi_req_t  ( lite_req_t    ),
+    .axi_resp_t ( lite_resp_t   ),
+    .NoMstPorts  ( NoMstPorts   ),
+    .MaxTrans    ( MaxTrans      )
+  ) i_axi_lite_demux (
+    .clk_i,
+    .rst_ni,
+    .test_i           ( test_i           ),
+    .slv_req_i        ( slv_req_i        ),
+    .slv_aw_select_i  ( slv_aw_select_i  ),
+    .slv_ar_select_i  ( slv_ar_select_i  ),
+    .slv_resp_o       ( slv_resp_o       ),
+    .mst_reqs_o       ( mst_reqs_o       ),
+    .mst_resps_i      ( mst_resps_i      )
+  );
+endmodule
+
+
+module synth_axi_lite_mux #(
+  parameter int unsigned NoSlvPorts = 32'd2,
+  parameter int unsigned MaxTrans   = 32'd8,
+  parameter int unsigned AddrWidth  = 32'd64,
+  parameter int unsigned DataWidth  = 32'd32
+) (
+  input logic clk_i,
+  input logic rst_ni
+);
+  `AXI_LITE_TYPEDEF_ALL(lite,
+    logic [AddrWidth-1:0],
+    logic [DataWidth-1:0],
+    logic [DataWidth/8-1:0])
+
+  lite_req_t  [NoSlvPorts-1:0] slv_reqs_i;
+  lite_resp_t [NoSlvPorts-1:0] slv_resps_o;
+  lite_req_t                   mst_req_o;
+  lite_resp_t                  mst_resp_i;
+  logic                        test_i;
+
+  axi_lite_mux #(
+    .aw_chan_t   ( lite_aw_chan_t ),
+    .w_chan_t    ( lite_w_chan_t  ),
+    .b_chan_t    ( lite_b_chan_t  ),
+    .ar_chan_t   ( lite_ar_chan_t ),
+    .r_chan_t    ( lite_r_chan_t  ),
+    .axi_req_t  ( lite_req_t    ),
+    .axi_resp_t ( lite_resp_t   ),
+    .NoSlvPorts  ( NoSlvPorts   ),
+    .MaxTrans    ( MaxTrans      )
+  ) i_axi_lite_mux (
+    .clk_i,
+    .rst_ni,
+    .test_i      ( test_i      ),
+    .slv_reqs_i  ( slv_reqs_i  ),
+    .slv_resps_o ( slv_resps_o ),
+    .mst_req_o   ( mst_req_o   ),
+    .mst_resp_i  ( mst_resp_i  )
+  );
+endmodule
+
+module synth_axi_rw_join #(
+  parameter int unsigned AddrWidth = 32'd64,
+  parameter int unsigned DataWidth = 32'd64,
+  parameter int unsigned IdWidth   = 32'd8,
+  parameter int unsigned UserWidth = 32'd8
+) (
+  input logic clk_i,
+  input logic rst_ni
+);
+  `AXI_TYPEDEF_ALL(axi,
+    logic [AddrWidth-1:0],
+    logic [IdWidth-1:0],
+    logic [DataWidth-1:0],
+    logic [DataWidth/8-1:0],
+    logic [UserWidth-1:0])
+
+  axi_req_t  slv_read_req_i,  slv_write_req_i;
+  axi_resp_t slv_read_resp_o, slv_write_resp_o;
+  axi_req_t  mst_req_o;
+  axi_resp_t mst_resp_i;
+
+  axi_rw_join #(
+    .axi_req_t  ( axi_req_t  ),
+    .axi_resp_t ( axi_resp_t )
+  ) i_axi_rw_join (
+    .clk_i,
+    .rst_ni,
+    .slv_read_req_i   ( slv_read_req_i   ),
+    .slv_read_resp_o  ( slv_read_resp_o  ),
+    .slv_write_req_i  ( slv_write_req_i  ),
+    .slv_write_resp_o ( slv_write_resp_o ),
+    .mst_req_o        ( mst_req_o        ),
+    .mst_resp_i       ( mst_resp_i       )
+  );
 endmodule
