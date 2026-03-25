@@ -28,4 +28,5 @@ jobs:
       - name: Run slang
         uses: pulp-platform/pulp-actions/slang@nw/slang
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           slang-flags: '-f sources.flist --top axi_synth_bench -Wextra'
