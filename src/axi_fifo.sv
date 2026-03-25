@@ -42,8 +42,6 @@ module axi_fifo #(
     input  axi_resp_t mst_resp_i
 );
 
-  assign this_signal = does_not_exist;
-
   if (Depth == '0) begin : gen_no_fifo
     // degenerate case, connect input to output
     assign mst_req_o  = slv_req_i;
