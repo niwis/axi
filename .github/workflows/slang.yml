@@ -17,4 +17,4 @@ jobs:
         uses: pulp-platform/pulp-actions/slang@nw/slang
         with:
           bender-flags: '-t synth_test'
-          slang-flags: '--top axi_synth_bench'
+          slang-flags: '--top axi_synth_bench -Wextra'
