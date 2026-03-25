@@ -389,8 +389,8 @@ module axi_synth_bench (
   end
 
   // AXI to Memory (split)
-  for (genvar i = 0; i < 3; i++) begin : gen_axi_to_mem_split
-    localparam int unsigned MemDW[3] = '{32, 64, 128};
+  for (genvar i = 0; i < 2; i++) begin : gen_axi_to_mem_split
+    localparam int unsigned MemDW[2] = '{32, 64};
     synth_axi_to_mem_split #(
       .MemDataWidth ( MemDW[i] )
     ) i_axi_to_mem_split (.*);
@@ -1714,8 +1714,8 @@ module synth_axi_throttle #(
     logic [DataWidth/8-1:0],
     logic [UserWidth-1:0])
 
-  localparam int unsigned WCntWidth = $clog2(MaxNumAwPending + 1);
-  localparam int unsigned RCntWidth = $clog2(MaxNumArPending + 1);
+  localparam int unsigned WCntWidth = cf_math_pkg::idx_width(MaxNumAwPending);
+  localparam int unsigned RCntWidth = cf_math_pkg::idx_width(MaxNumArPending);
 
   axi_req_t                  req_i, req_o;
   axi_resp_t                 rsp_o, rsp_i;
@@ -2480,7 +2480,7 @@ module synth_axi_xp #(
   parameter int unsigned DataWidth   = 32'd64,
   parameter int unsigned IdWidth     = 32'd4,
   parameter int unsigned UserWidth   = 32'd4,
-  parameter int unsigned NumAddrRules = 32'd1
+  parameter int unsigned NumAddrRules = NumMstPorts
 ) (
   input logic clk_i,
   input logic rst_ni
@@ -2492,6 +2492,22 @@ module synth_axi_xp #(
     logic [DataWidth/8-1:0],
     logic [UserWidth-1:0])
 
+  localparam axi_pkg::xbar_cfg_t XbarCfg = '{
+    NoSlvPorts:         NumSlvPorts,
+    NoMstPorts:         NumMstPorts,
+    MaxMstTrans:        32'd4,
+    MaxSlvTrans:        32'd4,
+    FallThrough:        1'b0,
+    LatencyMode:        axi_pkg::CUT_ALL_PORTS,
+    PipelineStages:     32'd0,
+    AxiIdWidthSlvPorts: IdWidth,
+    AxiIdUsedSlvPorts:  IdWidth,
+    UniqueIds:          1'b0,
+    AxiAddrWidth:       AddrWidth,
+    AxiDataWidth:       DataWidth,
+    NoAddrRules:        NumAddrRules
+  };
+
   logic                             test_en_i;
   axi_req_t  [NumSlvPorts-1:0]      slv_req_i;
   axi_resp_t [NumSlvPorts-1:0]      slv_resp_o;
@@ -2500,21 +2516,24 @@ module synth_axi_xp #(
   axi_pkg::xbar_rule_64_t [NumAddrRules-1:0] addr_map_i;
 
   axi_xp #(
-    .AxiAddrWidth         ( AddrWidth  ),
-    .AxiDataWidth         ( DataWidth  ),
-    .AxiIdWidth           ( IdWidth    ),
-    .AxiUserWidth         ( UserWidth  ),
-    .NumSlvPorts          ( NumSlvPorts ),
-    .NumMstPorts          ( NumMstPorts ),
-    .AxiSlvPortMaxUniqIds ( 32'd4      ),
-    .AxiSlvPortMaxTxnsPerId( 32'd4     ),
-    .AxiSlvPortMaxTxns    ( 32'd16     ),
-    .AxiMstPortMaxUniqIds ( 32'd4      ),
-    .AxiMstPortMaxTxnsPerId( 32'd4     ),
-    .NumAddrRules         ( NumAddrRules ),
-    .axi_req_t            ( axi_req_t  ),
-    .axi_resp_t           ( axi_resp_t ),
-    .rule_t               ( axi_pkg::xbar_rule_64_t )
+    .ATOPs                  ( 1'b1                    ),
+    .Cfg                    ( XbarCfg                 ),
+    .NumSlvPorts            ( NumSlvPorts             ),
+    .NumMstPorts            ( NumMstPorts             ),
+    .Connectivity           ( '1                      ),
+    .AxiAddrWidth           ( AddrWidth               ),
+    .AxiDataWidth           ( DataWidth               ),
+    .AxiIdWidth             ( IdWidth                 ),
+    .AxiUserWidth           ( UserWidth               ),
+    .AxiSlvPortMaxUniqIds   ( 32'd4                   ),
+    .AxiSlvPortMaxTxnsPerId ( 32'd4                   ),
+    .AxiSlvPortMaxTxns      ( 32'd16                  ),
+    .AxiMstPortMaxUniqIds   ( 32'd4                   ),
+    .AxiMstPortMaxTxnsPerId ( 32'd4                   ),
+    .NumAddrRules           ( NumAddrRules            ),
+    .axi_req_t              ( axi_req_t               ),
+    .axi_resp_t             ( axi_resp_t              ),
+    .rule_t                 ( axi_pkg::xbar_rule_64_t )
   ) i_axi_xp (
     .clk_i,
     .rst_ni,
