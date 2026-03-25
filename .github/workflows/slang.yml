@@ -23,7 +23,7 @@ jobs:
 
       - name: Generate file list
         shell: bash
-        run: bender script flist-plus ${{ inputs.bender-flags }} > sources.flist
+        run: bender script flist-plus -t synth_test > sources.flist
 
       - name: Run slang
         uses: pulp-platform/pulp-actions/slang@nw/slang
