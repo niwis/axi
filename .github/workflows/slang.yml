@@ -13,8 +13,19 @@ jobs:
       checks: write
       pull-requests: write
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install bender
+        uses: pulp-platform/pulp-actions/bender-install@v2.4.5
+
+      - name: Generate file list
+        shell: bash
+        run: bender script flist-plus ${{ inputs.bender-flags }} > sources.flist
+
       - name: Run slang
         uses: pulp-platform/pulp-actions/slang@nw/slang
         with:
-          bender-flags: '-t synth_test'
-          slang-flags: '--top axi_synth_bench -Wextra'
+          slang-flags: '-f sources.flist --top axi_synth_bench -Wextra'
