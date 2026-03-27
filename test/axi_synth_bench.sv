@@ -530,6 +530,8 @@ module axi_synth_bench (
 
 endmodule
 
+// slang lint_off unassigned-variable
+// slang lint_off unused-but-set-variable
 
 module synth_slice #(
   parameter int AW = -1,
