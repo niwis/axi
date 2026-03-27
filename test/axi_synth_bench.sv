@@ -361,7 +361,7 @@ module axi_synth_bench (
     localparam int unsigned NoBus[3] = '{1, 2, 4};
     synth_axi_id_prepend #(
       .NoBus ( NoBus[i] )
-    ) i_axi_id_prepend (.*);
+    ) i_axi_id_prepend ();
   end
 
   // AXI Demux ID Counters
@@ -1896,10 +1896,7 @@ module synth_axi_id_prepend #(
   parameter int unsigned AxiIdWidthSlvPort = 32'd4,
   parameter int unsigned AxiIdWidthMstPort = 32'd6,
   parameter int unsigned UserWidth         = 32'd8
-) (
-  input logic clk_i,
-  input logic rst_ni
-);
+) ();
   localparam int unsigned PreIdWidth = AxiIdWidthMstPort - AxiIdWidthSlvPort;
 
   `AXI_TYPEDEF_ALL(slv_axi,
