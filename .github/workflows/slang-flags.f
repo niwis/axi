@@ -1,0 +1,9 @@
+-Wextra
+-Wunused
+-Wempty-input-connection
+-Wno-width-trunc
+-Wno-unused-typedef
+-Wno-unused-def
+-Wno-unused-package-parameter
+-Wno-unused-package-typedef
+-Wno-unused-package-subroutine
