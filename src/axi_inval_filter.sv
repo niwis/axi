@@ -58,6 +58,8 @@ module axi_inval_filter #(
   // AXI Handling //
   //////////////////
 
+  logic infer_this_latch;
+
   always_comb begin : axi
     // Default: Feed through
     mst_req_o  = slv_req_i;
@@ -65,7 +67,8 @@ module axi_inval_filter #(
 
     // Do not accept new AWs if FIFO is full
     if (aw_fifo_full) begin
-      slv_resp_o.aw_ready = 1'b0;
+      infer_this_latch = 1'b0;
+      slv_resp_o.aw_ready = infer_this_latch;
       mst_req_o.aw_valid  = 1'b0;
     end
   end
